@@ -106,12 +106,12 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
   <div style="font-size:60px;margin-bottom:16px">🐾</div>
   <h1 style="font-family:'Fraunces',serif;font-size:30px;color:var(--pr);margin-bottom:6px">VetTrack Pro</h1>
   <p style="font-size:13px;color:var(--t3);margin-bottom:6px;text-align:center">Allevamento Di Casa Parodi</p>
-  <p style="font-size:12px;color:var(--t3);margin-bottom:36px;text-align:center;max-width:260px">Gestione veterinaria · Esposizioni · Prove di Lavoro · Cucciolate</p>
+  <p style="font-size:12px;color:var(--t3);margin-bottom:36px;text-align:center;max-width:280px">Gestione veterinaria · Esposizioni · Prove di Lavoro · Cucciolate</p>
   <button onclick="loginWithGoogle()" style="display:flex;align-items:center;gap:12px;padding:14px 28px;background:#fff;border:1.5px solid var(--br);border-radius:var(--r);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;color:var(--tx);box-shadow:0 2px 12px rgba(0,0,0,.08);min-width:240px;justify-content:center;touch-action:manipulation">
     <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
     Accedi con Google
   </button>
-  <p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center">I tuoi dati sono privati e sincronizzati su tutti i dispositivi.</p>
+  <p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center;max-width:260px">Accedendo autorizzi l'app ad inviare email, creare eventi nel calendario e salvare documenti su Drive a tuo nome.</p>
 </div>
 <div id="app-content" style="display:none">
   <div class="hdr">
@@ -155,7 +155,7 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 
-// ============ FIREBASE CONFIG (COMPAT SDK) ============
+// ============ FIREBASE CONFIG ============
 const FB_CFG = {
   apiKey:"AIzaSyBWo1p1J33Bu0zESfHB5jUf6J8lXu6x31c",
   authDomain:"dicasaparodi.firebaseapp.com",
@@ -165,16 +165,15 @@ const FB_CFG = {
   appId:"1:904798156271:web:66283caa4df669cf5ff21a"
 };
 
+const GOOGLE_CLIENT_ID = "904798156271-mt0ah1cg9i39u1tuu59d3d4uhs90jq12.apps.googleusercontent.com";
+
 firebase.initializeApp(FB_CFG);
 const auth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
+let googleAccessToken = null; // per Gmail, Calendar, Drive
 
-// Offline persistence (funziona senza internet)
-db.enablePersistence({synchronizeTabs:true}).catch(e => {
-  if(e.code === 'failed-precondition') console.log('Multi-tab: persistence disabled');
-  else if(e.code === 'unimplemented') console.log('Browser: persistence not supported');
-});
+db.enablePersistence({synchronizeTabs:true}).catch(e => console.log("Persistence:", e.code));
 
 // ============ AUTH ============
 function showLoginScreen(){
@@ -185,16 +184,44 @@ function hideLoginScreen(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-content').style.display='block';
 }
+
 function loginWithGoogle(){
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(e => toast('Errore login: '+e.message));
+  // Request extra scopes for Gmail, Calendar, Drive
+  provider.addScope('https://www.googleapis.com/auth/gmail.send');
+  provider.addScope('https://www.googleapis.com/auth/calendar.events');
+  provider.addScope('https://www.googleapis.com/auth/drive.file');
+  auth.signInWithPopup(provider)
+    .then(result => {
+      // Save the Google access token for API calls
+      googleAccessToken = result.credential.accessToken;
+      localStorage.setItem('gat', googleAccessToken);
+    })
+    .catch(e => toast('Errore login: ' + e.message));
 }
+
 function logout(){
   if(!confirm('Vuoi uscire?')) return;
   auth.signOut().then(()=>{
+    googleAccessToken = null;
+    localStorage.removeItem('gat');
     S.dogs=[];S.records=[];S.heats=[];S.litters=[];S.puppies=[];S.shows=[];S.trials=[];
     showLoginScreen();
   });
+}
+
+async function refreshGoogleToken(){
+  // Re-authenticate silently to get fresh token
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/gmail.send');
+    provider.addScope('https://www.googleapis.com/auth/calendar.events');
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+    const result = await auth.signInWithPopup(provider);
+    googleAccessToken = result.credential.accessToken;
+    localStorage.setItem('gat', googleAccessToken);
+    return googleAccessToken;
+  } catch(e) { return null; }
 }
 
 // ============ FIRESTORE ============
@@ -213,12 +240,170 @@ async function fbSet(key,value){
   }catch(e){console.error('fbSet',key,e);}
 }
 
-// ============ AUTH STATE OBSERVER ============
+// ============ GMAIL API ============
+async function sendEmailViaGmail(to, subject, body){
+  let token = googleAccessToken || localStorage.getItem('gat');
+  if(!token){ token = await refreshGoogleToken(); }
+  if(!token){ toast('Rieffettua il login per inviare email'); return false; }
+  
+  const email = [
+    'To: ' + to,
+    'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=',
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    '',
+    body
+  ].join('\r\n');
+  
+  const encoded = btoa(unescape(encodeURIComponent(email)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  
+  try{
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({raw: encoded})
+    });
+    if(!res.ok){
+      const err = await res.json();
+      if(err.error?.code === 401){
+        token = await refreshGoogleToken();
+        if(token) return sendEmailViaGmail(to, subject, body);
+      }
+      throw new Error(err.error?.message || 'Errore invio');
+    }
+    return true;
+  }catch(e){
+    console.error('Gmail error:', e);
+    toast('Errore email: ' + e.message);
+    return false;
+  }
+}
+
+// ============ GOOGLE CALENDAR API ============
+async function createCalendarEvent(title, date, description=''){
+  let token = googleAccessToken || localStorage.getItem('gat');
+  if(!token){ token = await refreshGoogleToken(); }
+  if(!token) return;
+  
+  const startDate = new Date(date);
+  const endDate = new Date(date);
+  endDate.setHours(startDate.getHours()+1);
+  
+  const event = {
+    summary: '🐾 ' + title,
+    description: description || 'Promemoria da VetTrack Pro — Di Casa Parodi',
+    start: { date: date },
+    end: { date: date },
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: 'email', minutes: 7*24*60 },  // 7 giorni prima
+        { method: 'popup', minutes: 60 }          // 1 ora prima
+      ]
+    }
+  };
+  
+  try{
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(event)
+    });
+    if(res.ok){
+      console.log('Calendar event created:', title);
+      return true;
+    }
+  }catch(e){
+    console.error('Calendar error:', e);
+  }
+  return false;
+}
+
+// ============ GOOGLE DRIVE API ============
+async function uploadToDrive(fileName, content, mimeType='application/pdf'){
+  let token = googleAccessToken || localStorage.getItem('gat');
+  if(!token){ token = await refreshGoogleToken(); }
+  if(!token){ toast('Rieffettua il login per usare Drive'); return null; }
+  
+  // Create folder "VetTrack Pro" if not exists
+  const folderId = await getOrCreateDriveFolder(token);
+  
+  const metadata = {
+    name: fileName,
+    parents: folderId ? [folderId] : []
+  };
+  
+  const boundary = 'vettrack_boundary';
+  const body = [
+    '--' + boundary,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(metadata),
+    '--' + boundary,
+    'Content-Type: ' + mimeType,
+    '',
+    content,
+    '--' + boundary + '--'
+  ].join('\r\n');
+  
+  try{
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'multipart/related; boundary=' + boundary
+      },
+      body: body
+    });
+    if(res.ok){
+      const data = await res.json();
+      return data.webViewLink || ('https://drive.google.com/file/d/' + data.id + '/view');
+    }
+  }catch(e){
+    console.error('Drive error:', e);
+    toast('Errore Drive: ' + e.message);
+  }
+  return null;
+}
+
+async function getOrCreateDriveFolder(token){
+  try{
+    // Search for existing folder
+    const searchRes = await fetch(
+      "https://www.googleapis.com/drive/v3/files?q=name%3D'VetTrack%20Pro'%20and%20mimeType%3D'application%2Fvnd.google-apps.folder'%20and%20trashed%3Dfalse&fields=files(id)",
+      {headers: {'Authorization': 'Bearer ' + token}}
+    );
+    const searchData = await searchRes.json();
+    if(searchData.files?.length > 0) return searchData.files[0].id;
+    
+    // Create folder
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
+      body: JSON.stringify({name: 'VetTrack Pro', mimeType: 'application/vnd.google-apps.folder'})
+    });
+    const folder = await createRes.json();
+    return folder.id;
+  }catch(e){ return null; }
+}
+
+// ============ AUTH STATE ============
 auth.onAuthStateChanged(async(user)=>{
   if(user){
-    currentUser=user;
-    const uEl=document.getElementById('user-info');
-    if(uEl) uEl.innerHTML=`
+    currentUser = user;
+    // Try to restore token from localStorage
+    const savedToken = localStorage.getItem('gat');
+    if(savedToken) googleAccessToken = savedToken;
+    
+    const uEl = document.getElementById('user-info');
+    if(uEl) uEl.innerHTML = `
       <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--br)" onerror="this.style.display='none'">
       <span style="font-size:11px;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.displayName||user.email}</span>
       <button class="btn bS sm" onclick="logout()" style="padding:4px 10px;font-size:10px">Esci</button>
@@ -226,7 +411,7 @@ auth.onAuthStateChanged(async(user)=>{
     hideLoginScreen();
     await load();
   }else{
-    currentUser=null;
+    currentUser = null;
     showLoginScreen();
   }
 });
@@ -1047,10 +1232,10 @@ async function autoCheck(){
 }
 
 async function createCalEvent(name,dueDate,dogName){
-  if(!S.cfg.email||!dueDate)return;
-  try{
-    await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:`Crea un evento nel mio Google Calendar per ricordarmi di: "${name}" per ${dogName}. Data: ${dueDate}. Aggiungi un promemoria via email 7 giorni prima. Titolo evento: "🐾 ${name} — ${dogName}". Descrizione: "Promemoria veterinario da VetTrack Pro"`}],mcp_servers:[{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal-mcp'}]})});
-  }catch{}
+  if(!dueDate)return;
+  const title = name+' — '+dogName;
+  const desc = 'Promemoria veterinario da VetTrack Pro\nAllevamento Di Casa Parodi';
+  await createCalendarEvent(title, dueDate, desc);
 }
 
 load();
