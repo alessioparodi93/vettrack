@@ -371,15 +371,54 @@ function champComp(dogId){
   return{tCAC,tCACsp,tCACabb,tCACq,tCACst,tCACbm,tCACaut,tECC,tECCsp,tECCq,tECCbm,tRiporto,sCAC,sMB};
 }
 function getChampReqs(id,dogId){
-  const c=champComp(dogId),dog=getDog(dogId);
+  const c=champComp(dogId);
   const reqs={
-    'CIL_F':[{ok:c.tCAC>=1,text:`1 CAC in prove (hai: ${c.tCAC}/1)`},{ok:c.tECC>=2,text:`2 ECC in prove (hai: ${c.tECC}/2)`},{ok:c.tCACsp>=1||c.tECCsp>=2,text:`≥1 CAC o ≥2 ECC in prova speciale (CAC sp.: ${c.tCACsp}, ECC sp.: ${c.tECCsp})`},{ok:c.tCACabb<=1,warn:c.tCACabb>1,text:`Max 1 CAC su selvatico abbattuto (hai: ${c.tCACabb})`},{ok:c.tECCq<=1,warn:c.tECCq>1,text:`Max 1 ECC in classiche quaglie (hai: ${c.tECCq})`},{ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},{ok:c.sMB,text:'MB in raduno/mostra speciale o prova speciale',manual:true,mkey:'mbEspo'}],
-    'CIL_M':[{ok:c.tCAC>=3,text:`3 CAC (hai: ${c.tCAC}/3)`},{ok:c.tCACsp>=1,text:`≥1 CAC in prova speciale (hai: ${c.tCACsp}/1)`},{ok:c.tCACabb<=1,warn:c.tCACabb>1,text:`Max 1 CAC su selvatico abbattuto (hai: ${c.tCACabb})`},{ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},{ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}],
-    'CCS':[{ok:c.tCAC>=2,text:`2 CAC (hai: ${c.tCAC}/2)`},{ok:c.tECC>=1,text:`1 ECC (hai: ${c.tECC}/1)`},{ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},{ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}],
-    'CSP':[{ok:c.tCACbm>=2,text:`2 CAC in beccacce/montagna (hai: ${c.tCACbm}/2)`},{ok:c.tECCbm>=1,text:`1 ECC in beccacce/montagna (hai: ${c.tECCbm}/1)`},{ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},{ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}],
-    'CPC_F':[{ok:c.tCAC>=3,text:`3 CAC totali (hai: ${c.tCAC}/3)`},{ok:c.tCACst>=2,text:`≥2 CAC in classiche su starne (hai: ${c.tCACst}/2)`},{ok:c.tCACaut>=1,text:`≥1 CAC in prova autunnale (hai: ${c.tCACaut}/1)`},{ok:c.tCACq>=1,text:`1 CAC in classiche quaglie (hai: ${c.tCACq}/1)`},{ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},{ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}],
-    'CPC_M':[{ok:c.tCAC>=5,text:`5 CAC totali (hai: ${c.tCAC}/5)`},{ok:c.tCACst>=4,text:`≥4 CAC in classiche su starne (hai: ${c.tCACst}/4)`},{ok:c.tCACaut>=1,text:`≥1 CAC in prova autunnale (hai: ${c.tCACaut}/1)`},{ok:c.tCACq>=1,text:`1 CAC in classiche quaglie (hai: ${c.tCACq}/1)`},{ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},{ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}],
-    'CIB':[{ok:c.sCAC>=3,text:`3 CAC da 3 giudici diversi (hai: ${c.sCAC}/3)`},{ok:c.sMB,text:'MB in raduno o mostra speciale',manual:true,mkey:'mbEspo'},{ok:c.tRiporto,text:'Qualifica in prova di lavoro (per razze con prova)',manual:true,mkey:'riporto'}]
+    'CIL_F':[
+      {ok:c.tCAC>=1,text:'1 CAC in prove (hai: '+c.tCAC+'/1)'},
+      {ok:c.tECC>=2,text:'2 ECC in prove (hai: '+c.tECC+'/2)'},
+      {ok:c.tCACsp>=1||c.tECCsp>=2,text:'>=1 CAC o >=2 ECC in prova speciale (CAC sp.: '+c.tCACsp+', ECC sp.: '+c.tECCsp+')'},
+      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno/mostra speciale o prova speciale',manual:true,mkey:'mbEspo'}
+    ],
+    'CIL_M':[
+      {ok:c.tCAC>=3,text:'3 CAC (hai: '+c.tCAC+'/3)'},
+      {ok:c.tCACsp>=1,text:'>=1 CAC in prova speciale (hai: '+c.tCACsp+'/1)'},
+      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+    ],
+    'CCS':[
+      {ok:c.tCAC>=2,text:'2 CAC (hai: '+c.tCAC+'/2)'},
+      {ok:c.tECC>=1,text:'1 ECC (hai: '+c.tECC+'/1)'},
+      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+    ],
+    'CSP':[
+      {ok:c.tCACbm>=2,text:'2 CAC in beccacce/montagna (hai: '+c.tCACbm+'/2)'},
+      {ok:c.tECCbm>=1,text:'1 ECC in beccacce/montagna (hai: '+c.tECCbm+'/1)'},
+      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+    ],
+    'CPC_F':[
+      {ok:c.tCAC>=3,text:'3 CAC totali (hai: '+c.tCAC+'/3)'},
+      {ok:c.tCACst>=2,text:'>=2 CAC in classiche su starne (hai: '+c.tCACst+'/2)'},
+      {ok:c.tCACaut>=1,text:'>=1 CAC in prova autunnale (hai: '+c.tCACaut+'/1)'},
+      {ok:c.tCACq>=1,text:'1 CAC in classiche quaglie (hai: '+c.tCACq+'/1)'},
+      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+    ],
+    'CPC_M':[
+      {ok:c.tCAC>=5,text:'5 CAC totali (hai: '+c.tCAC+'/5)'},
+      {ok:c.tCACst>=4,text:'>=4 CAC in classiche su starne (hai: '+c.tCACst+'/4)'},
+      {ok:c.tCACaut>=1,text:'>=1 CAC in prova autunnale (hai: '+c.tCACaut+'/1)'},
+      {ok:c.tCACq>=1,text:'1 CAC in classiche quaglie (hai: '+c.tCACq+'/1)'},
+      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+    ],
+    'CIB':[
+      {ok:c.sCAC>=3,text:'3 CAC da 3 giudici diversi (hai: '+c.sCAC+'/3)'},
+      {ok:c.sMB,text:'MB in raduno o mostra speciale',manual:true,mkey:'mbEspo'},
+      {ok:c.tRiporto,text:'Qualifica in prova di lavoro',manual:true,mkey:'riporto'}
+    ]
   };
   return reqs[id]||[];
 }
