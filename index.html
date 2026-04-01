@@ -102,44 +102,11 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
 </head>
 <body>
 <div class="toast" id="toast"></div>
-<div id="login-screen" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px">
-  <div style="font-size:60px;margin-bottom:16px">🐾</div>
-  <h1 style="font-family:'Fraunces',serif;font-size:30px;color:var(--pr);margin-bottom:6px">VetTrack Pro</h1>
-  <p style="font-size:13px;color:var(--t3);margin-bottom:6px;text-align:center">Allevamento Di Casa Parodi</p>
-  <p style="font-size:12px;color:var(--t3);margin-bottom:36px;text-align:center;max-width:280px">Gestione veterinaria - Esposizioni - Prove di Lavoro - Cucciolate</p>
-  <button onclick="loginWithGoogle()" style="display:flex;align-items:center;gap:12px;padding:14px 28px;background:#fff;border:1.5px solid var(--br);border-radius:var(--r);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;color:var(--tx);box-shadow:0 2px 12px rgba(0,0,0,.08);min-width:240px;justify-content:center;touch-action:manipulation">
-    <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-    Accedi con Google
-  </button>
-  <p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center">Login sicuro - solo email e profilo Google richiesti.</p>
-</div>
+<div id="login-screen" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px"><div style="font-size:60px;margin-bottom:16px">🐾</div><h1 style="font-family:'Fraunces',serif;font-size:30px;color:var(--pr);margin-bottom:6px">VetTrack Pro</h1><p style="font-size:13px;color:var(--t3);margin-bottom:6px;text-align:center">Allevamento Di Casa Parodi</p><p style="font-size:12px;color:var(--t3);margin-bottom:36px;text-align:center;max-width:280px">Gestione veterinaria - Esposizioni - Prove di Lavoro - Cucciolate</p><button onclick="loginWithGoogle()" style="display:flex;align-items:center;gap:12px;padding:14px 28px;background:#fff;border:1.5px solid var(--br);border-radius:var(--r);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;color:var(--tx);box-shadow:0 2px 12px rgba(0,0,0,.08);min-width:240px;justify-content:center;touch-action:manipulation"><svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Accedi con Google</button><p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center">Login sicuro - solo email e profilo Google richiesti.</p></div>
 <div id="app-content" style="display:none">
-  <div class="hdr">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div><h1>🐾 VetTrack Pro</h1><p>Di Casa Parodi - Kurzhaar</p></div>
-      <div id="user-info" style="display:flex;align-items:center;gap:7px"></div>
-    </div>
-  </div>
-  <div class="pg on" id="page-dashboard"><div id="d-stats"></div><div id="d-alerts"></div><div id="d-email"></div></div>
-<div class="pg" id="page-dogs"><div id="dogs-c"></div></div>
-<div class="pg" id="page-detail"><div id="det-c"></div></div>
-<div class="pg" id="page-dog-form"><div id="dogf-c"></div></div>
-<div class="pg" id="page-record-form"><div id="recf-c"></div></div>
-<div class="pg" id="page-show-form"><div id="showf-c"></div></div>
-<div class="pg" id="page-trial-form"><div id="trialf-c"></div></div>
-<div class="pg" id="page-champ"><div id="champ-c"></div></div>
-<div class="pg" id="page-breeding"><div id="breed-c"></div></div>
-<div class="pg" id="page-heat-form"><div id="heatf-c"></div></div>
-<div class="pg" id="page-litter-form"><div id="litf-c"></div></div>
-<div class="pg" id="page-litter-detail"><div id="litd-c"></div></div>
-<div class="pg" id="page-puppy-form"><div id="pupf-c"></div></div>
-<div class="pg" id="page-settings"><div id="set-c"></div></div>
-  <nav class="nav">
-  <button class="nb on" id="nav-dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</button>
-  <button class="nb" id="nav-dogs" onclick="go('dogs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5M8 14v.5A3.5 3.5 0 0011.5 18h1a3.5 3.5 0 003.5-3.5V14l-1-4.5H9L8 14z"/></svg>I miei cani</button>
-  <button class="nb" id="nav-breeding" onclick="go('breeding')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Allevamento</button>
-  <button class="nb" id="nav-settings" onclick="go('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Impostazioni</button>
-</nav>
+  <div class="hdr"><div style="display:flex;align-items:center;justify-content:space-between"><div><h1>🐾 VetTrack Pro</h1><p>Di Casa Parodi - Kurzhaar</p></div><div id="user-info" style="display:flex;align-items:center;gap:7px"></div></div></div>
+  <div class="pg on" id="page-dashboard"><div id="d-stats"></div><div id="d-alerts"></div><div id="d-email"></div></div><div class="pg" id="page-dogs"><div id="dogs-c"></div></div><div class="pg" id="page-detail"><div id="det-c"></div></div><div class="pg" id="page-dog-form"><div id="dogf-c"></div></div><div class="pg" id="page-record-form"><div id="recf-c"></div></div><div class="pg" id="page-show-form"><div id="showf-c"></div></div><div class="pg" id="page-trial-form"><div id="trialf-c"></div></div><div class="pg" id="page-champ"><div id="champ-c"></div></div><div class="pg" id="page-breeding"><div id="breed-c"></div></div><div class="pg" id="page-heat-form"><div id="heatf-c"></div></div><div class="pg" id="page-litter-form"><div id="litf-c"></div></div><div class="pg" id="page-litter-detail"><div id="litd-c"></div></div><div class="pg" id="page-puppy-form"><div id="pupf-c"></div></div><div class="pg" id="page-settings"><div id="set-c"></div></div>
+  <nav class="nav"><button class="nb on" id="nav-dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</button><button class="nb" id="nav-dogs" onclick="go('dogs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5M8 14v.5A3.5 3.5 0 0011.5 18h1a3.5 3.5 0 003.5-3.5V14l-1-4.5H9L8 14z"/></svg>I miei cani</button><button class="nb" id="nav-breeding" onclick="go('breeding')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Allevamento</button><button class="nb" id="nav-settings" onclick="go('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Impostazioni</button></nav>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -360,7 +327,8 @@ function champComp(dogId){
   const tCACspTot=tCACsp+tRCACsp; // R.CAC in speciale vale come CAC per CIL Femmina
   const tCACabb=tr.filter(t=>hasCert(t.certs,'CAC')&&t.abbattuto).length;
   const tCACq=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='quaglie_class'||t.type==='quaglie_att')).length;
-  const tCACst=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='starne'||t.type==='selvaggina'||t.type==='quaglie_class')).length;
+  const tCACst=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='starne'||t.type==='selvaggina')).length; // solo starne e selvaggina naturale
+  const tCACstq=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='starne'||t.type==='selvaggina'||t.type==='quaglie_class')).length; // per CPC
   const tCACbm=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='beccacce'||t.type==='montagna')).length;
   const tCACaut=tr.filter(t=>hasCert(t.certs,'CAC')&&t.autunnale).length;
   const tECC=tr.filter(t=>t.qual&&t.qual.startsWith('ECC')).length;
@@ -370,7 +338,7 @@ function champComp(dogId){
   const tRiporto=m.riporto||tr.some(t=>hasCert(t.certs,'Idoneità al Riporto')||hasCert(t.certs,'Brevetto di Riporto'));
   const sCAC=sh.filter(s=>hasCert(s.certs,'CAC')).length;
   const sMB=m.mbEspo||m.mbLav||sh.some(s=>s.qual&&(s.qual.startsWith('MB')||s.qual.startsWith('ECC'))&&(s.type==='Raduno'||s.type==='Mostra Speciale'))||tr.some(t=>t.qual&&(t.qual.startsWith('MB')||t.qual.startsWith('ECC'))&&(t.speciale||t.type==='speciale'));
-  return{tCAC,tCACsp,tRCACsp,tCACspTot,tCACabb,tCACq,tCACst,tCACbm,tCACaut,tECC,tECCsp,tECCq,tECCbm,tRiporto,sCAC,sMB};
+  return{tCAC,tCACsp,tRCACsp,tCACspTot,tCACabb,tCACq,tCACst,tCACstq,tCACbm,tCACaut,tECC,tECCsp,tECCq,tECCbm,tRiporto,sCAC,sMB};
 }
 function getChampReqs(id,dogId){
   const c=champComp(dogId);
@@ -379,47 +347,53 @@ function getChampReqs(id,dogId){
       {ok:c.tCAC>=1,text:'1 CAC in prove (hai: '+c.tCAC+'/1)'},
       {ok:c.tECC>=2,text:'2 ECC in prove (hai: '+c.tECC+'/2)'},
       {ok:c.tCACspTot>=1||c.tECCsp>=2,text:'>=1 CAC/R.CAC o >=2 ECC in prova speciale (CAC sp.: '+c.tCACsp+', R.CAC sp.: '+c.tRCACsp+', ECC sp.: '+c.tECCsp+')'},
-      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.sMB,text:'MB in raduno/mostra speciale o prova speciale',manual:true,mkey:'mbEspo'}
+      {ok:c.tRiporto,text:'Idoneita al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.tCoppia,text:'Prova in coppia (Assoc. Specializzata)',manual:true,mkey:'coppia'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale con CAC',manual:true,mkey:'mbEspo'}
     ],
     'CIL_M':[
-      {ok:c.tCAC>=3,text:'3 CAC (hai: '+c.tCAC+'/3)'},
-      {ok:c.tCACsp>=1,text:'>=1 CAC in prova speciale (hai: '+c.tCACsp+'/1)'},
-      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+      {ok:c.tCAC>=3,text:'3 CAC in prove (hai: '+c.tCAC+'/3)'},
+      {ok:c.tCACspTot>=1,text:'>=1 CAC o R.CAC in prova speciale (CAC sp.: '+c.tCACsp+', R.CAC sp.: '+c.tRCACsp+')'},
+      {ok:c.tRiporto,text:'Idoneita al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.tCoppia,text:'Prova in coppia (Assoc. Specializzata)',manual:true,mkey:'coppia'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale con CAC',manual:true,mkey:'mbEspo'}
     ],
     'CCS':[
-      {ok:c.tCAC>=2,text:'2 CAC (hai: '+c.tCAC+'/2)'},
-      {ok:c.tECC>=1,text:'1 ECC (hai: '+c.tECC+'/1)'},
-      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+      {ok:c.tCAC>=3,text:'3 CAC in prove (hai: '+c.tCAC+'/3)'},
+      {ok:c.tCACst>=1,text:'>=1 CAC in prova su starne o selvaggina (hai: '+c.tCACst+')'},
+      {ok:c.tRiporto,text:'Idoneita al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale',manual:true,mkey:'mbEspo'}
     ],
     'CSP':[
       {ok:c.tCACbm>=2,text:'2 CAC in beccacce/montagna (hai: '+c.tCACbm+'/2)'},
       {ok:c.tECCbm>=1,text:'1 ECC in beccacce/montagna (hai: '+c.tECCbm+'/1)'},
-      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+      {ok:c.tRiporto,text:'Idoneita al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale',manual:true,mkey:'mbEspo'}
     ],
     'CPC_F':[
-      {ok:c.tCAC>=3,text:'3 CAC totali (hai: '+c.tCAC+'/3)'},
-      {ok:c.tCACst>=2,text:'>=2 CAC in classiche su starne (hai: '+c.tCACst+'/2)'},
+      {ok:c.tCAC>=3,text:'3 CAC in prove classiche (hai: '+c.tCAC+'/3)'},
+      {ok:c.tCACstq>=2,text:'>=2 CAC in classiche su starne (hai: '+c.tCACstq+'/2)'},
       {ok:c.tCACaut>=1,text:'>=1 CAC in prova autunnale (hai: '+c.tCACaut+'/1)'},
       {ok:c.tCACq>=1,text:'1 CAC in classiche quaglie (hai: '+c.tCACq+'/1)'},
-      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+      {ok:c.tRiporto,text:'Idoneita al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale',manual:true,mkey:'mbEspo'}
     ],
     'CPC_M':[
-      {ok:c.tCAC>=5,text:'5 CAC totali (hai: '+c.tCAC+'/5)'},
-      {ok:c.tCACst>=4,text:'>=4 CAC in classiche su starne (hai: '+c.tCACst+'/4)'},
+      {ok:c.tCAC>=5,text:'5 CAC in prove classiche (hai: '+c.tCAC+'/5)'},
+      {ok:c.tCACstq>=4,text:'>=4 CAC in classiche su starne (hai: '+c.tCACstq+'/4)'},
       {ok:c.tCACaut>=1,text:'>=1 CAC in prova autunnale (hai: '+c.tCACaut+'/1)'},
       {ok:c.tCACq>=1,text:'1 CAC in classiche quaglie (hai: '+c.tCACq+'/1)'},
-      {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.sMB,text:'MB in raduno/mostra speciale',manual:true,mkey:'mbEspo'}
+      {ok:c.tRiporto,text:'Idoneita al Riporto',manual:true,mkey:'riporto'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale',manual:true,mkey:'mbEspo'}
     ],
     'CIB':[
-      {ok:c.sCAC>=3,text:'3 CAC da 3 giudici diversi (hai: '+c.sCAC+'/3)'},
-      {ok:c.sMB,text:'MB in raduno o mostra speciale',manual:true,mkey:'mbEspo'},
-      {ok:c.tRiporto,text:'Qualifica in prova di lavoro',manual:true,mkey:'riporto'}
+      {ok:c.sCAC>=6||(c.sCAClavoro>=5),text:'6 CAC in qualsiasi classe oppure 5 CAC tutti in classe lavoro (hai: '+c.sCAC+' tot, di cui '+c.sCAClavoro+' in classe lavoro)'},
+      {ok:c.sCACintl>=2,text:'>=2 CAC in esposizioni internazionali (hai: '+c.sCACintl+'/2)'},
+      {ok:c.sCACnaz>=1,text:'>=1 CAC in esposizione nazionale (hai: '+c.sCACnaz+'/1)'},
+      {ok:(c.sCAC>=6&&c.sCACraduno>=2)||(c.sCAClavoro>=5&&c.sCACraduno>=1),text:'>=2 raduno/mostra speciale (6 CAC) o >=1 (5 CAC lavoro) (hai: '+c.sCACraduno+')'},
+      {ok:c.sGiudici>=5,text:'>=5 giudici diversi per i CAC (hai: '+c.sGiudici+')'},
+      {ok:c.tProvaLav,text:'Prova di lavoro superata (MB/CQN/CAL/ECC)',manual:true,mkey:'provaLav'},
+      {ok:c.sMB,text:'MB in raduno di razza o mostra speciale',manual:true,mkey:'mbEspo'}
     ]
   };
   return reqs[id]||[];
