@@ -868,7 +868,7 @@ function renderChamp(){
       const col2=req.warn?'var(--dn)':(req.ok?'var(--ok)':'var(--tx)');
       h+=`<div class="req-row"><div class="ri2 ${cls}">${icon}</div><div style="flex:1">
         <div style="font-weight:${req.ok&&!req.warn?'600':'400'};color:${col2}">${esc(req.text)}</div>
-        ${req.manual&&!req.ok?`<label style="display:flex;align-items:center;gap:6px;margin-top:4px;cursor:pointer;font-size:11px;color:var(--t2)"><input type="checkbox" style="accent-color:var(--pr)" onchange="setManual('${dog.id}','${req.mkey}',this.checked)"> Conferma manualmente (già ottenuto prima di questa app)</label>`:''}
+        ${req.manual?`<label style="display:flex;align-items:center;gap:6px;margin-top:4px;cursor:pointer;font-size:11px;color:var(--t2)"><input type="checkbox" style="accent-color:var(--pr)"${req.ok?' checked':''} onchange="setManual('${dog.id}','${req.mkey}',this.checked)"> ${req.ok?'Deseleziona se non ancora ottenuto':'Conferma manualmente (già ottenuto prima di questa app)'}</label>`:''}
       </div></div>`;
     });
     h+=`</div>`;
