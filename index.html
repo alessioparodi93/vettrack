@@ -356,6 +356,8 @@ function champComp(dogId){
   const hasCert=(arr,c)=>arr&&arr.includes(c);
   const tCAC=tr.filter(t=>hasCert(t.certs,'CAC')).length;
   const tCACsp=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.speciale||t.type==='speciale')).length;
+  const tRCACsp=tr.filter(t=>hasCert(t.certs,'R.CAC')&&(t.speciale||t.type==='speciale')).length;
+  const tCACspTot=tCACsp+tRCACsp; // R.CAC in speciale vale come CAC per CIL Femmina
   const tCACabb=tr.filter(t=>hasCert(t.certs,'CAC')&&t.abbattuto).length;
   const tCACq=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='quaglie_class'||t.type==='quaglie_att')).length;
   const tCACst=tr.filter(t=>hasCert(t.certs,'CAC')&&(t.type==='starne'||t.type==='selvaggina'||t.type==='quaglie_class')).length;
@@ -368,7 +370,7 @@ function champComp(dogId){
   const tRiporto=m.riporto||tr.some(t=>hasCert(t.certs,'Idoneità al Riporto')||hasCert(t.certs,'Brevetto di Riporto'));
   const sCAC=sh.filter(s=>hasCert(s.certs,'CAC')).length;
   const sMB=m.mbEspo||m.mbLav||sh.some(s=>s.qual&&(s.qual.startsWith('MB')||s.qual.startsWith('ECC'))&&(s.type==='Raduno'||s.type==='Mostra Speciale'))||tr.some(t=>t.qual&&(t.qual.startsWith('MB')||t.qual.startsWith('ECC'))&&(t.speciale||t.type==='speciale'));
-  return{tCAC,tCACsp,tCACabb,tCACq,tCACst,tCACbm,tCACaut,tECC,tECCsp,tECCq,tECCbm,tRiporto,sCAC,sMB};
+  return{tCAC,tCACsp,tRCACsp,tCACspTot,tCACabb,tCACq,tCACst,tCACbm,tCACaut,tECC,tECCsp,tECCq,tECCbm,tRiporto,sCAC,sMB};
 }
 function getChampReqs(id,dogId){
   const c=champComp(dogId);
@@ -376,7 +378,7 @@ function getChampReqs(id,dogId){
     'CIL_F':[
       {ok:c.tCAC>=1,text:'1 CAC in prove (hai: '+c.tCAC+'/1)'},
       {ok:c.tECC>=2,text:'2 ECC in prove (hai: '+c.tECC+'/2)'},
-      {ok:c.tCACsp>=1||c.tECCsp>=2,text:'>=1 CAC o >=2 ECC in prova speciale (CAC sp.: '+c.tCACsp+', ECC sp.: '+c.tECCsp+')'},
+      {ok:c.tCACspTot>=1||c.tECCsp>=2,text:'>=1 CAC/R.CAC o >=2 ECC in prova speciale (CAC sp.: '+c.tCACsp+', R.CAC sp.: '+c.tRCACsp+', ECC sp.: '+c.tECCsp+')'},
       {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
       {ok:c.sMB,text:'MB in raduno/mostra speciale o prova speciale',manual:true,mkey:'mbEspo'}
     ],
