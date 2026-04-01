@@ -102,16 +102,16 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
 </head>
 <body>
 <div class="toast" id="toast"></div>
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px">
+<div id="login-screen" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px">
   <div style="font-size:60px;margin-bottom:16px">🐾</div>
   <h1 style="font-family:'Fraunces',serif;font-size:30px;color:var(--pr);margin-bottom:6px">VetTrack Pro</h1>
-  <p style="font-size:13px;color:var(--t3);margin-bottom:8px;text-align:center">Allevamento Di Casa Parodi</p>
+  <p style="font-size:13px;color:var(--t3);margin-bottom:6px;text-align:center">Allevamento Di Casa Parodi</p>
   <p style="font-size:12px;color:var(--t3);margin-bottom:36px;text-align:center;max-width:260px">Gestione veterinaria · Esposizioni · Prove di Lavoro · Cucciolate</p>
   <button onclick="loginWithGoogle()" style="display:flex;align-items:center;gap:12px;padding:14px 28px;background:#fff;border:1.5px solid var(--br);border-radius:var(--r);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;color:var(--tx);box-shadow:0 2px 12px rgba(0,0,0,.08);min-width:240px;justify-content:center;touch-action:manipulation">
     <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
     Accedi con Google
   </button>
-  <p style="font-size:10px;color:var(--t3);margin-top:24px;text-align:center">I tuoi dati sono privati e protetti.</p>
+  <p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center">I tuoi dati sono privati e sincronizzati su tutti i dispositivi.</p>
 </div>
 <div id="app-content" style="display:none">
   <div class="hdr">
@@ -149,9 +149,13 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
   </button>
 </nav>
 </div>
-<script type="module">
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
 
-// ============ FIREBASE CONFIG ============
+// ============ FIREBASE CONFIG (COMPAT SDK) ============
 const FB_CFG = {
   apiKey:"AIzaSyBWo1p1J33Bu0zESfHB5jUf6J8lXu6x31c",
   authDomain:"dicasaparodi.firebaseapp.com",
@@ -161,117 +165,68 @@ const FB_CFG = {
   appId:"1:904798156271:web:66283caa4df669cf5ff21a"
 };
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-
-const fbApp = initializeApp(FB_CFG);
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
+firebase.initializeApp(FB_CFG);
+const auth = firebase.auth();
+const db = firebase.firestore();
 let currentUser = null;
 
-// Enable offline persistence (works without internet, syncs when back online)
-enableIndexedDbPersistence(db).catch(e => console.log("Persistence:", e.code));
+// Offline persistence (funziona senza internet)
+db.enablePersistence({synchronizeTabs:true}).catch(e => {
+  if(e.code === 'failed-precondition') console.log('Multi-tab: persistence disabled');
+  else if(e.code === 'unimplemented') console.log('Browser: persistence not supported');
+});
 
-// ============ AUTH UI ============
-function showLoginScreen() {
-  document.getElementById("app-content").style.display = "none";
-  document.getElementById("login-screen").style.display = "flex";
+// ============ AUTH ============
+function showLoginScreen(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-content').style.display='none';
 }
-function hideLoginScreen() {
-  document.getElementById("login-screen").style.display = "none";
-  document.getElementById("app-content").style.display = "block";
+function hideLoginScreen(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-content').style.display='block';
 }
-
-async function loginWithGoogle() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) {
-    toast("Errore login: " + e.message);
-  }
+function loginWithGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e => toast('Errore login: '+e.message));
 }
-
-async function logout() {
-  if(!confirm("Vuoi uscire dall'app?")) return;
-  await signOut(auth);
-  S.dogs=[];S.records=[];S.heats=[];S.litters=[];S.puppies=[];S.shows=[];S.trials=[];
-  renderAll();
-  showLoginScreen();
+function logout(){
+  if(!confirm('Vuoi uscire?')) return;
+  auth.signOut().then(()=>{
+    S.dogs=[];S.records=[];S.heats=[];S.litters=[];S.puppies=[];S.shows=[];S.trials=[];
+    showLoginScreen();
+  });
 }
 
-// ============ FIRESTORE SYNC ============
-function userDocRef(key) {
-  return doc(db, "users", currentUser.uid, "data", key);
+// ============ FIRESTORE ============
+function userDocRef(key){
+  return db.collection('users').doc(currentUser.uid).collection('data').doc(key);
+}
+async function fbGet(key){
+  try{
+    const snap = await userDocRef(key).get();
+    return snap.exists ? snap.data().value : null;
+  }catch(e){console.error('fbGet',key,e);return null;}
+}
+async function fbSet(key,value){
+  try{
+    await userDocRef(key).set({value,updatedAt:new Date().toISOString()});
+  }catch(e){console.error('fbSet',key,e);}
 }
 
-async function fbGet(key) {
-  try {
-    const snap = await getDoc(userDocRef(key));
-    return snap.exists() ? snap.data().value : null;
-  } catch(e) { console.error("fbGet", key, e); return null; }
-}
-
-async function fbSet(key, value) {
-  try {
-    await setDoc(userDocRef(key), { value, updatedAt: new Date().toISOString() });
-  } catch(e) { console.error("fbSet", key, e); }
-}
-
-async function load() {
-  S.dogs    = await fbGet("dogs")    || [];
-  S.records = await fbGet("records") || [];
-  S.heats   = await fbGet("heats")   || [];
-  S.litters = await fbGet("litters") || [];
-  S.puppies = await fbGet("puppies") || [];
-  S.shows   = await fbGet("shows")   || [];
-  S.trials  = await fbGet("trials")  || [];
-  S.cfg     = await fbGet("cfg")     || {email:"",daysAhead:60,vetName:"",vetPhone:""};
-  renderAll();
-  autoCheck();
-}
-
-const sv = {
-  d: () => fbSet("dogs",    S.dogs),
-  r: () => fbSet("records", S.records),
-  h: () => fbSet("heats",   S.heats),
-  l: () => fbSet("litters", S.litters),
-  p: () => fbSet("puppies", S.puppies),
-  s: () => fbSet("shows",   S.shows),
-  t: () => fbSet("trials",  S.trials),
-  c: () => fbSet("cfg",     S.cfg)
-};
-
-async function autoCheck() {
-  if(!S.cfg.email) return;
-  try {
-    const lastDate = await fbGet("lastEmail") || "";
-    if(lastDate === tod()) return;
-  } catch {}
-  const up = upcoming(S.cfg.daysAhead);
-  if(!up.length) return;
-  const urgent = up.filter(r => r._d <= 7);
-  if(!urgent.length) return;
-  setTimeout(() => sendEmail(), 3000);
-}
-
-// Auth state observer — this drives the whole app
-onAuthStateChanged(auth, async (user) => {
-  if(user) {
-    currentUser = user;
-    // Update user info in header
-    const uEl = document.getElementById("user-info");
-    if(uEl) {
-      uEl.innerHTML = `
-        <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--br)" onerror="this.style.display='none'">
-        <span style="font-size:11px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.displayName||user.email}</span>
-        <button class="btn bS sm" onclick="logout()" style="padding:4px 10px;font-size:10px">Esci</button>
-      `;
-    }
+// ============ AUTH STATE OBSERVER ============
+auth.onAuthStateChanged(async(user)=>{
+  if(user){
+    currentUser=user;
+    const uEl=document.getElementById('user-info');
+    if(uEl) uEl.innerHTML=`
+      <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--br)" onerror="this.style.display='none'">
+      <span style="font-size:11px;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.displayName||user.email}</span>
+      <button class="btn bS sm" onclick="logout()" style="padding:4px 10px;font-size:10px">Esci</button>
+    `;
     hideLoginScreen();
     await load();
-  } else {
-    currentUser = null;
+  }else{
+    currentUser=null;
     showLoginScreen();
   }
 });
@@ -294,7 +249,23 @@ const DOC_TYPES=['Pedigree','Certificato Anagrafe Canina','Caudotomia','Esami de
 
 const S={dogs:[],records:[],heats:[],litters:[],puppies:[],shows:[],trials:[],cfg:{email:'',daysAhead:60,vetName:'',vetPhone:''},page:'dashboard',dogId:null,detailTab:'salute',editDogId:null,editRecId:null,editRecDogId:null,newRecCat:'vaccino',editShowId:null,editShowDogId:null,editTrialId:null,editTrialDogId:null,champDogId:null,champTitle:null,breedTab:'calori',editHeatId:null,editHeatDogId:null,editLitterId:null,currentLitterId:null,editPuppyId:null,editPuppyLitterId:null,selEmoji:'🐶',selCerts:[]};
 
-// load() and sv{} defined in Firebase layer above
+async function load(){
+  S.dogs    = await fbGet('dogs')    || [];
+  S.records = await fbGet('records') || [];
+  S.heats   = await fbGet('heats')   || [];
+  S.litters = await fbGet('litters') || [];
+  S.puppies = await fbGet('puppies') || [];
+  S.shows   = await fbGet('shows')   || [];
+  S.trials  = await fbGet('trials')  || [];
+  S.cfg     = await fbGet('cfg')     || {email:'',daysAhead:60,vetName:'',vetPhone:''};
+  renderAll(); autoCheck();
+}
+const sv={
+  d:()=>fbSet('dogs',S.dogs), r:()=>fbSet('records',S.records),
+  h:()=>fbSet('heats',S.heats), l:()=>fbSet('litters',S.litters),
+  p:()=>fbSet('puppies',S.puppies), s:()=>fbSet('shows',S.shows),
+  t:()=>fbSet('trials',S.trials), c:()=>fbSet('cfg',S.cfg)
+};
 
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const fd=d=>d?new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'—';
@@ -986,6 +957,7 @@ function delPuppy(pid,litId){if(!confirm('Eliminare?'))return;S.puppies=S.puppie
 
 // SETTINGS
 function renderSettings(){
+  updateAccountInfo();
   document.getElementById('set-c').innerHTML=`<h2 style="font-size:20px;margin-bottom:4px;margin-top:8px">Impostazioni</h2>
   <div class="stt">Email promemoria</div>
   <div class="card">
@@ -998,7 +970,7 @@ function renderSettings(){
   <button class="btn bP full" style="margin-bottom:16px" onclick="saveCfgForm()">Salva impostazioni</button>
   <div class="stt">Account</div>
   <div class="card">
-    <div style="font-size:13px;color:var(--t2);margin-bottom:12px" id="account-info">Caricamento...</div>
+    <div id="account-info" style="font-size:13px;color:var(--t2);margin-bottom:12px">Caricamento...</div>
     <button class="btn bD full" onclick="logout()">Esci dall'account Google</button>
   </div>
   <div class="stt">Statistiche allevamento</div>
@@ -1006,17 +978,12 @@ function renderSettings(){
     ${[['Cani',S.dogs.length],['Femmine',S.dogs.filter(d=>d.gender==='Femmina').length],['Maschi',S.dogs.filter(d=>d.gender==='Maschio').length],['Trattamenti veterinari',S.records.length],['Esposizioni di bellezza',S.shows.length],['Prove di lavoro',S.trials.length],['Calori registrati',S.heats.length],['Cucciolate',S.litters.length],['Cuccioli totali',S.puppies.length]].map(([l,v])=>`<div style="display:flex;justify-content:space-between"><span>${l}</span><strong>${v}</strong></div>`).join('')}
   </div></div>`;
 }
-
-  // Update account info
+function updateAccountInfo(){
   setTimeout(()=>{
     const el=document.getElementById('account-info');
-    if(el&&currentUser) el.innerHTML=`
-      <strong>${currentUser.displayName||'Utente'}</strong><br>
-      <span style="font-size:11px">${currentUser.email}</span><br>
-      <span style="font-size:10px;color:var(--t3)">🔒 Accesso sicuro con Google · Dati sincronizzati su Firestore</span>
-    `;
+    if(el&&currentUser)el.innerHTML=`<strong>${currentUser.displayName||'Utente'}</strong><br><span style="font-size:11px">${currentUser.email}</span><br><span style="font-size:10px;color:var(--t3)">Accesso sicuro con Google</span>`;
   },100);
-
+}
 function saveCfgForm(){S.cfg.email=document.getElementById('se').value.trim();S.cfg.daysAhead=parseInt(document.getElementById('sd').value)||60;S.cfg.vetName=document.getElementById('svet').value.trim();sv.c();renderDash();renderSettings();toast('Impostazioni salvate ✓');}
 
 // PDF EXPORT
@@ -1071,7 +1038,13 @@ async function sendEmail(){
   btn.disabled=false;
 }
 
-// autoCheck() defined in Firebase layer above
+async function autoCheck(){
+  if(!S.cfg.email)return;
+  try{const lastDate=await fbGet('lastEmail')||'';if(lastDate===tod())return;}catch{}
+  const up=upcoming(S.cfg.daysAhead);if(!up.length)return;
+  const urgent=up.filter(r=>r._d<=7);if(!urgent.length)return;
+  setTimeout(()=>sendEmail(),3000);
+}
 
 async function createCalEvent(name,dueDate,dogName){
   if(!S.cfg.email||!dueDate)return;
