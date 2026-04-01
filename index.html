@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="VetTrack Pro">
 <meta name="theme-color" content="#F4EFE9">
@@ -284,11 +283,11 @@ onAuthStateChanged(auth, async (user) => {
     // Update user info in header
     const uEl = document.getElementById("user-info");
     if(uEl) {
-      uEl.innerHTML = \`
-        <img src="\${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--br)" onerror="this.style.display='none'">
-        <span style="font-size:11px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${user.displayName||user.email}</span>
+      uEl.innerHTML = `
+        <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--br)" onerror="this.style.display='none'">
+        <span style="font-size:11px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.displayName||user.email}</span>
         <button class="btn bS sm" onclick="logout()" style="padding:4px 10px;font-size:10px">Esci</button>
-      \`;
+      `;
     }
     hideLoginScreen();
     await load();
@@ -1032,11 +1031,11 @@ function renderSettings(){
   // Update account info
   setTimeout(()=>{
     const el=document.getElementById('account-info');
-    if(el&&currentUser) el.innerHTML=\`
-      <strong>\${currentUser.displayName||'Utente'}</strong><br>
-      <span style="font-size:11px">\${currentUser.email}</span><br>
+    if(el&&currentUser) el.innerHTML=`
+      <strong>${currentUser.displayName||'Utente'}</strong><br>
+      <span style="font-size:11px">${currentUser.email}</span><br>
       <span style="font-size:10px;color:var(--t3)">🔒 Accesso sicuro con Google · Dati sincronizzati su Firestore</span>
-    \`;
+    `;
   },100);
 
 function saveCfgForm(){S.cfg.email=document.getElementById('se').value.trim();S.cfg.daysAhead=parseInt(document.getElementById('sd').value)||60;S.cfg.vetName=document.getElementById('svet').value.trim();sv.c();renderDash();renderSettings();toast('Impostazioni salvate ✓');}
