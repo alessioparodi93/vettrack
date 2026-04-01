@@ -111,7 +111,7 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
     <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
     Accedi con Google
   </button>
-  <p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center;max-width:260px">Accedendo autorizzi l'app ad inviare email, creare eventi nel calendario e salvare documenti su Drive a tuo nome.</p>
+  <p style="font-size:10px;color:var(--t3);margin-top:20px;text-align:center;max-width:260px">Accedendo autorizzi Gmail, Calendar e Drive per le funzioni dell'app.</p>
 </div>
 <div id="app-content" style="display:none">
   <div class="hdr">
@@ -149,7 +149,6 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
   </button>
 </nav>
 </div>
-<!-- Firebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -432,6 +431,18 @@ const CHAMP_TITLES=[{id:'CIL_F',label:'Campione Italiano di Lavoro',gender:'Femm
 const EMOJIS=['🐶','🐕','🦮','🐕‍🦺','🐩','🦴'];
 const DOC_TYPES=['Pedigree','Certificato Anagrafe Canina','Caudotomia','Esami del sangue','Certificato medico','Contratto','Modulo ENCI','Altro'];
 
+
+// XSS sanitizer — escapes all user-provided data before innerHTML rendering
+function esc(v){
+  if(v===null||v===undefined)return '';
+  return String(v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;');
+}
+
 const S={dogs:[],records:[],heats:[],litters:[],puppies:[],shows:[],trials:[],cfg:{email:'',daysAhead:60,vetName:'',vetPhone:''},page:'dashboard',dogId:null,detailTab:'salute',editDogId:null,editRecId:null,editRecDogId:null,newRecCat:'vaccino',editShowId:null,editShowDogId:null,editTrialId:null,editTrialDogId:null,champDogId:null,champTitle:null,breedTab:'calori',editHeatId:null,editHeatDogId:null,editLitterId:null,currentLitterId:null,editPuppyId:null,editPuppyLitterId:null,selEmoji:'🐶',selCerts:[]};
 
 async function load(){
@@ -545,10 +556,10 @@ function renderDash(){
   </div>`;
   let ah=`<div class="stt">Scadenze entro ${S.cfg.daysAhead} giorni</div>`;
   if(!up.length){ah+=`<div class="empty" style="padding:20px"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-weight:600">Tutto in ordine!</div><div style="font-size:11px">Nessuna scadenza imminente</div></div>`;}
-  else{up.forEach(r=>{const t=REC_CATS[r.category]||REC_CATS.altro;ah+=`<div class="ai ${ucls(r._d)}" onclick="go('detail','${r.dogId}')"><div class="ad"></div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:12px">${r._dog?r._dog.emoji+' '+r._dog.name:'Cane'}</div><div style="font-size:11px;margin-top:1px">${r.name} <span class="badge bn">${t.l}</span></div><div style="font-size:10px;color:var(--t2)">Scadenza: ${fd(r.dueDate)}</div></div>${ubadge(r._d)}</div>`;});}
+  else{up.forEach(r=>{const t=REC_CATS[r.category]||REC_CATS.altro;ah+=`<div class="ai ${ucls(r._d)}" onclick="go('detail','${r.dogId}')"><div class="ad"></div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:12px">${r._dog?r._dog.emoji+' '+r._dog.name:'Cane'}</div><div style="font-size:11px;margin-top:1px">${esc(r.name)} <span class="badge bn">${t.l}</span></div><div style="font-size:10px;color:var(--t2)">Scadenza: ${fd(r.dueDate)}</div></div>${ubadge(r._d)}</div>`;});}
   document.getElementById('d-alerts').innerHTML=ah;
   document.getElementById('d-email').innerHTML=S.cfg.email
-    ?`<div class="divider"></div><div class="stt">Promemoria email</div><p style="font-size:11px;color:var(--t2);margin-bottom:10px">Invio a <strong>${S.cfg.email}</strong></p><button class="btn bA full" id="send-btn" onclick="sendEmail()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>Invia promemoria email</button>`
+    ?`<div class="divider"></div><div class="stt">Promemoria email</div><p style="font-size:11px;color:var(--t2);margin-bottom:10px">Invio a <strong>${esc(S.cfg.email)}</strong></p><button class="btn bA full" id="send-btn" onclick="sendEmail()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>Invia promemoria email</button>`
     :`<div class="divider"></div><div class="card" style="text-align:center;border:1.5px dashed var(--br);background:transparent"><div style="font-size:11px;color:var(--t2);margin-bottom:8px">Configura email per ricevere promemoria</div><button class="btn bS sm" onclick="go('settings')">Vai alle impostazioni →</button></div>`;
 }
 
@@ -562,9 +573,9 @@ function renderDogs(){
     h+=`<div class="card" style="padding:12px;cursor:pointer" onclick="go('detail','${d.id}')"><div style="display:flex;align-items:center;gap:12px">
       ${d.photo?`<img src="${d.photo}" class="photo-circle">`:`<div class="photo-ph">${d.emoji||'🐶'}</div>`}
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:15px;font-family:'Fraunces',serif">${d.name}</div>
+        <div style="font-weight:700;font-size:15px;font-family:'Fraunces',serif">${esc(d.name)}</div>
         <div style="font-size:11px;color:var(--t2);margin-top:2px">${[d.breed,d.gender,d.birthDate?fd(d.birthDate):''].filter(Boolean).join(' · ')||'—'}</div>
-        ${d.microchip?`<div style="font-size:10px;color:var(--t3)">🔖 ${d.microchip}</div>`:''}
+        ${d.microchip?`<div style="font-size:10px;color:var(--t3)">🔖 ${esc(d.microchip)}</div>`:''}
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">
           ${sc>0?`<span class="badge bd">${sc} scad.</span>`:''}${ug>0?`<span class="badge bw">${ug} urg.</span>`:''}
           ${dogShows(d.id).length>0?`<span class="badge bgd">${dogShows(d.id).length} expo</span>`:''}
@@ -590,12 +601,12 @@ function renderDetail(){
     </div>
     <input type="file" id="photo-inp" accept="image/*" style="display:none" onchange="uploadPhoto(event,'${dog.id}')">
     <div style="flex:1">
-      <h2 style="font-size:22px">${dog.name}</h2>
+      <h2 style="font-size:22px">${esc(dog.name)}</h2>
       <div style="font-size:11px;color:var(--t2);margin-top:2px">${[dog.breed,dog.gender].filter(Boolean).join(' · ')||''}</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">
         ${dog.birthDate?`<span class="chip">${fd(dog.birthDate)}</span>`:''}
-        ${dog.microchip?`<span class="chip">🔖 ${dog.microchip}</span>`:''}
-        ${dog.loi?`<span class="chip">LOI: ${dog.loi}</span>`:''}
+        ${dog.microchip?`<span class="chip">🔖 ${esc(dog.microchip)}</span>`:''}
+        ${dog.loi?`<span class="chip">LOI: ${esc(dog.loi)}</span>`:''}
       </div>
     </div>
     <button class="btn bS sm" onclick="go('dog-form','${dog.id}')">✏️</button>
@@ -633,14 +644,14 @@ function renderSaluteTab(dog){
       h+=`<div class="stt">${REC_CATS[cat].l}</div>`;
       cr.forEach(r=>{const d2=dTo(r.dueDate);h+=`<div class="rl ${REC_CATS[cat].cls}" onclick="go('record-form',{dogId:'${dog.id}',recId:'${r.id}'})">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
-          <div style="min-width:0"><div style="font-weight:700;font-size:13px;font-family:'Fraunces',serif">${r.name}</div>
+          <div style="min-width:0"><div style="font-weight:700;font-size:13px;font-family:'Fraunces',serif">${esc(r.name)}</div>
             <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">
-              ${r.date?`<span class="chip">${fd(r.date)}</span>`:''}${r.vetName?`<span class="chip">Dr. ${r.vetName}</span>`:''}${r.cost?`<span class="chip">€${parseFloat(r.cost).toFixed(2)}</span>`:''}
+              ${r.date?`<span class="chip">${fd(r.date)}</span>`:''}${r.vetName?`<span class="chip">Dr. ${esc(r.vetName)}</span>`:''}${r.cost?`<span class="chip">€${parseFloat(r.cost).toFixed(2)}</span>`:''}
             </div>
           </div>${d2!==null?`<div style="flex-shrink:0">${ubadge(d2)}</div>`:''}
         </div>
         ${r.dueDate?`<div style="font-size:10px;color:var(--t2);margin-top:5px">Prossima: <strong>${fd(r.dueDate)}</strong></div>`:''}
-        ${r.notes?`<div style="font-size:10px;color:var(--t3);margin-top:3px;font-style:italic">${r.notes}</div>`:''}
+        ${r.notes?`<div style="font-size:10px;color:var(--t3);margin-top:3px;font-style:italic">${esc(r.notes)}</div>`:''}
       </div>`;});
     });
   }
@@ -653,23 +664,23 @@ function renderCampionatiTab(dog){
   if(!shows.length){h+=`<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px">Nessuna esposizione registrata</div>`;}
   else shows.forEach(s=>{h+=`<div class="rc show" onclick="go('show-form',{dogId:'${dog.id}',showId:'${s.id}'})">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div><div style="font-weight:700;font-size:12px;color:var(--gd)">${fd(s.date)} · ${s.location||'—'}</div>
+      <div><div style="font-weight:700;font-size:12px;color:var(--gd)">${fd(s.date)} · ${esc(s.location)||'—'}</div>
         <div style="font-size:12px;margin-top:2px"><strong>${(s.qual||'').split(' ')[0]||'—'}</strong>${s.classe?' · '+s.classe:''} · ${s.type||''}</div>
         ${s.certs?.length?`<div style="font-size:11px;color:var(--gd);margin-top:2px">🏅 ${s.certs.join(' · ')}</div>`:''}
       </div>${s.placement?`<span class="badge bgd">${s.placement}°</span>`:''}
     </div>
-    ${s.judge?`<div style="font-size:10px;color:var(--t3);margin-top:3px">Giudice: ${s.judge}</div>`:''}
+    ${s.judge?`<div style="font-size:10px;color:var(--t3);margin-top:3px">Giudice: ${esc(s.judge)}</div>`:''}
   </div>`;});
   h+=`<div class="divider"></div><div class="row" style="margin-bottom:10px"><div class="stt" style="margin:0">🐕 Prove di Lavoro</div><button class="btn bA sm" onclick="go('trial-form',{dogId:'${dog.id}'})">+ Prova</button></div>`;
   if(!trials.length){h+=`<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px">Nessuna prova registrata</div>`;}
   else trials.forEach(t=>{const tt=TRIAL_TYPES.find(x=>x.id===t.type);h+=`<div class="rc trial" onclick="go('trial-form',{dogId:'${dog.id}',trialId:'${t.id}'})">
-    <div style="font-weight:700;font-size:12px;color:var(--ac)">${fd(t.date)} · ${t.location||'—'}</div>
+    <div style="font-weight:700;font-size:12px;color:var(--ac)">${fd(t.date)} · ${esc(t.location)||'—'}</div>
     <div style="font-size:12px;margin-top:2px"><strong>${(t.qual||'').split(' ')[0]||'—'}</strong> · ${tt?.label||t.type}</div>
     ${t.certs?.length?`<div style="font-size:11px;color:var(--ac);margin-top:2px">🏅 ${t.certs.join(' · ')}</div>`:''}
     <div style="display:flex;gap:4px;margin-top:3px">
       ${t.speciale||t.type==='speciale'?`<span class="badge bi">Prova Speciale</span>`:''}${t.abbattuto?`<span class="badge bn">Selvatico abbattuto</span>`:''}${t.autunnale?`<span class="badge bn">Autunnale</span>`:''}
     </div>
-    ${t.judge?`<div style="font-size:10px;color:var(--t3);margin-top:2px">Giudice: ${t.judge}</div>`:''}
+    ${t.judge?`<div style="font-size:10px;color:var(--t3);margin-top:2px">Giudice: ${esc(t.judge)}</div>`:''}
   </div>`;});
   h+=`<div class="divider"></div><button class="btn bGd full" onclick="go('champ',{dogId:'${dog.id}',title:null})">🏆 Tracker Campionati ENCI →</button>`;
   return h;
@@ -688,16 +699,16 @@ function renderRiprodTab(dog){
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><div style="font-weight:700;font-size:12px;color:var(--pk)">${fd(heat.startDate)} → ${heat.endDate?fd(heat.endDate):'in corso'}</div>
         ${heat.duration?`<div style="font-size:10px;color:var(--t2)">Durata: ${heat.duration} giorni</div>`:''}
-        ${heat.matedWith?`<div style="font-size:10px;color:var(--t2)">Con: ${heat.matedWith}</div>`:''}
+        ${heat.matedWith?`<div style="font-size:10px;color:var(--t2)">Con: ${esc(heat.matedWith)}</div>`:''}
       </div>${heat.mated?`<span class="badge bk2">Accoppiata</span>`:`<span class="badge bn">Non accopp.</span>`}
     </div>
-    ${heat.notes?`<div style="font-size:10px;color:var(--t3);margin-top:3px;font-style:italic">${heat.notes}</div>`:''}
+    ${heat.notes?`<div style="font-size:10px;color:var(--t3);margin-top:3px;font-style:italic">${esc(heat.notes)}</div>`:''}
   </div>`;});
   h+=`<div class="divider"></div><div class="row" style="margin-bottom:9px"><div class="stt" style="margin:0">🐣 Cucciolate</div><button class="btn bA sm" onclick="go('litter-form',null)">+ Cucciolata</button></div>`;
   if(!ls.length){h+=`<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px">Nessuna cucciolata registrata</div>`;}
   else ls.forEach(l=>{const pups=litPups(l.id),m=pups.filter(p=>p.sex==='M').length,f=pups.filter(p=>p.sex==='F').length;h+=`<div class="lc" onclick="go('litter-detail','${l.id}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div><div style="font-weight:700;font-size:12px;color:var(--ac)">Parto: ${fd(l.birthDate)}</div>${l.fatherName?`<div style="font-size:10px;color:var(--t2)">Padre: ${l.fatherName}</div>`:''}</div>
+      <div><div style="font-weight:700;font-size:12px;color:var(--ac)">Parto: ${fd(l.birthDate)}</div>${l.fatherName?`<div style="font-size:10px;color:var(--t2)">Padre: ${esc(l.fatherName)}</div>`:''}</div>
       <span class="badge bi">${pups.length} cucc.</span>
     </div>
     <div style="display:flex;gap:4px;margin-top:5px">${m>0?`<span class="badge bb">${m}M</span>`:''}${f>0?`<span class="badge bk2">${f}F</span>`:''}${pups.length===0?`<span class="badge bn">Aggiungi cuccioli</span>`:''}</div>
@@ -712,7 +723,7 @@ function renderDocsTab(dog){
   if(!docs.length){h+=`<div style="text-align:center;padding:14px;color:var(--t3);font-size:11px">Nessun documento aggiunto</div>`;}
   else docs.forEach((doc,i)=>{h+=`<div class="doc-item">
     <div style="font-size:26px">${doc.type==='Pedigree'?'📜':doc.type==='Certificato Anagrafe Canina'?'📋':'📄'}</div>
-    <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${doc.name||doc.type}</div><div style="font-size:10px;color:var(--t3)">${doc.type}${doc.url?' · 🔗 Google Drive':''}</div></div>
+    <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${doc.name||doc.type}</div><div style="font-size:10px;color:var(--t3)">${esc(doc.type)}${doc.url?' · 🔗 Google Drive':''}</div></div>
     ${doc.url?`<button class="btn bA sm" onclick="openLink('${doc.url}')">Apri</button>`:''}
     <button class="btn bD sm" onclick="delDoc('${dog.id}',${i})">×</button>
   </div>`;});
@@ -772,16 +783,16 @@ function renderRecForm(){
   let prodHtml='';
   if(cat==='vaccino'){
     const sel=pid||'dhppi';
-    prodHtml=`<div class="fg"><label class="fl">💉 Vaccino</label><select class="fi fsl" id="r-prod" onchange="onProd(this.value,'${cat}')">${VACCINES.map(v=>`<option value="${v.id}"${sel===v.id?' selected':''}>${v.label}</option>`).join('')}</select></div>
+    prodHtml=`<div class="fg"><label class="fl">💉 Vaccino</label><select class="fi fsl" id="r-prod" onchange="onProd(this.value,'${cat}')">${VACCINES.map(v=>`<option value="${v.id}"${sel===v.id?' selected':''}>${esc(v.label)}</option>`).join('')}</select></div>
     <div id="rabbia-opt" style="${sel==='rabbia'?'':'display:none'}"><div class="fg"><label class="fl">Durata copertura Rabbia</label><select class="fi fsl" id="r-rabbia-dur">${[{v:'365',l:'1 anno'},{v:'1095',l:'3 anni'}].map(o=>`<option value="${o.v}"${rec?.rabbiaDays==o.v?' selected':''}>${o.l}</option>`).join('')}</select></div></div>
     ${sel==='altro_vax'?`<div class="fg"><label class="fl">Nome vaccino</label><input class="fi" id="r-name-custom" type="text" value="${rec?.customName||''}"></div>`:''}`;
   } else if(cat==='antiparassitario'){
     const sel=pid||'advantix';
-    prodHtml=`<div class="fg"><label class="fl">🛡 Antiparassitario</label><select class="fi fsl" id="r-prod" onchange="onProd(this.value,'${cat}')">${ANTIPAR.map(p=>`<option value="${p.id}"${sel===p.id?' selected':''}>${p.label}</option>`).join('')}</select></div>
+    prodHtml=`<div class="fg"><label class="fl">🛡 Antiparassitario</label><select class="fi fsl" id="r-prod" onchange="onProd(this.value,'${cat}')">${ANTIPAR.map(p=>`<option value="${p.id}"${sel===p.id?' selected':''}>${esc(p.label)}</option>`).join('')}</select></div>
     ${sel==='altro_anti'?`<div class="fg"><label class="fl">Nome prodotto</label><input class="fi" id="r-name-custom" type="text" value="${rec?.customName||''}"></div>`:''}`;
   } else if(cat==='sverminazione'){
     const sel=pid||'milbemax';
-    prodHtml=`<div class="fg"><label class="fl">💊 Prodotto sverminante</label><select class="fi fsl" id="r-prod" onchange="onProd(this.value,'${cat}')">${DEWORM.map(p=>`<option value="${p.id}"${sel===p.id?' selected':''}>${p.label}</option>`).join('')}</select></div>`;
+    prodHtml=`<div class="fg"><label class="fl">💊 Prodotto sverminante</label><select class="fi fsl" id="r-prod" onchange="onProd(this.value,'${cat}')">${DEWORM.map(p=>`<option value="${p.id}"${sel===p.id?' selected':''}>${esc(p.label)}</option>`).join('')}</select></div>`;
   } else {
     prodHtml=`<div class="fg"><label class="fl">Descrizione *</label><input class="fi" id="r-name-custom" type="text" placeholder="${cat==='visita'?'Es: Visita annuale, Ecografia...':cat==='intervento'?'Es: Sterilizzazione, Radiografie...':'Descrizione'}" value="${rec?.customName||rec?.name||''}"></div>`;
   }
@@ -884,7 +895,7 @@ function renderTrialForm(){
     <div class="fg"><label class="fl">Qualifica</label><select class="fi fsl" id="t-qual">${TRIAL_QUALS.map(q=>`<option${trial?.qual===q?' selected':''}>${q}</option>`).join('')}</select></div>
   </div>
   <div class="fg"><label class="fl">Luogo / Denominazione gara</label><input class="fi" id="t-loc" type="text" placeholder="Es: Cremona — BRAIA Prova su starne" value="${trial?.location||''}"></div>
-  <div class="fg"><label class="fl">Tipo di prova</label><select class="fi fsl" id="t-type">${TRIAL_TYPES.map(t=>`<option value="${t.id}"${trial?.type===t.id?' selected':''}>${t.label}</option>`).join('')}</select></div>
+  <div class="fg"><label class="fl">Tipo di prova</label><select class="fi fsl" id="t-type">${TRIAL_TYPES.map(t=>`<option value="${t.id}"${trial?.type===t.id?' selected':''}>${esc(t.label)}</option>`).join('')}</select></div>
   <div class="fg"><label class="fl">Certificati ottenuti</label><div class="certs">${TRIAL_CERTS.map(c=>`<button class="cert-btn${S.selCerts.includes(c)?' on':''}" onclick="togCert('${c}')">${c}</button>`).join('')}</div></div>
   <div class="fg" style="display:flex;flex-direction:column;gap:9px">
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px"><input type="checkbox" id="t-sp"${trial?.speciale?' checked':''} style="width:15px;height:15px;accent-color:var(--pr)"><span><strong>Prova Speciale</strong> — organizzata dall'Associazione Specializzata (vale per campionato di lavoro)</span></label>
@@ -908,7 +919,7 @@ function renderChamp(){
   const dog=getDog(S.champDogId);if(!dog){go('dogs');return;}
   const dog_gender=dog.gender;
   const titles=CHAMP_TITLES.filter(ct=>ct.gender==='*'||ct.gender===dog_gender);
-  let h=`<button class="bk" onclick="go('detail','${dog.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>${dog.emoji} ${dog.name}</button>
+  let h=`<button class="bk" onclick="go('detail','${dog.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>${dog.emoji} ${esc(dog.name)}</button>
   <h2 style="font-size:20px;margin-bottom:4px">🏆 Tracker Campionati ENCI</h2>
   <p style="font-size:11px;color:var(--t3);margin-bottom:14px">Dati aggiornati in automatico dalle prove e dalle esposizioni inserite.</p>`;
   if(!S.champTitle){
@@ -921,7 +932,7 @@ function renderChamp(){
       h+=`<div class="card" style="cursor:pointer;margin-bottom:9px" onclick="S.champTitle='${ct.id}';renderChamp()">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
           <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:13px;font-family:'Fraunces',serif">${ct.label}</div>
+            <div style="font-weight:700;font-size:13px;font-family:'Fraunces',serif">${esc(ct.label)}</div>
             <div style="font-size:10px;color:var(--t3)">${ct.gender==='*'?'Maschi & Femmine':ct.gender}</div>
             <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:${col}"></div></div>
             <div style="font-size:10px;color:var(--t3)">${done}/${total} requisiti</div>
@@ -948,14 +959,14 @@ function renderChamp(){
       const cls=req.warn?'riwarn':(req.ok?'riok':'rino');
       const col2=req.warn?'var(--dn)':(req.ok?'var(--ok)':'var(--tx)');
       h+=`<div class="req-row"><div class="ri2 ${cls}">${icon}</div><div style="flex:1">
-        <div style="font-weight:${req.ok&&!req.warn?'600':'400'};color:${col2}">${req.text}</div>
+        <div style="font-weight:${req.ok&&!req.warn?'600':'400'};color:${col2}">${esc(req.text)}</div>
         ${req.manual&&!req.ok?`<label style="display:flex;align-items:center;gap:6px;margin-top:4px;cursor:pointer;font-size:11px;color:var(--t2)"><input type="checkbox" style="accent-color:var(--pr)" onchange="setManual('${dog.id}','${req.mkey}',this.checked)"> Conferma manualmente (già ottenuto prima di questa app)</label>`:''}
       </div></div>`;
     });
     h+=`</div>`;
     if(pct>=100){
       h+=`<div class="stt">📋 Moduli ENCI — pronto per la proclamazione</div>`;
-      ENCI_FORMS.filter(f=>f.ids.includes(S.champTitle)).forEach(f=>{h+=`<div class="enci-card"><div style="font-weight:700;font-size:12px;color:var(--gd)">🏆 ${f.label}</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Codice modulo: <strong>${f.code}</strong></div><button class="btn bGd sm" style="margin-top:8px" onclick="openLink('https://www.enci.it/modulistica')">Scarica da ENCI.it →</button></div>`;});
+      ENCI_FORMS.filter(f=>f.ids.includes(S.champTitle)).forEach(f=>{h+=`<div class="enci-card"><div style="font-weight:700;font-size:12px;color:var(--gd)">🏆 ${esc(f.label)}</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Codice modulo: <strong>${esc(f.code)}</strong></div><button class="btn bGd sm" style="margin-top:8px" onclick="openLink('https://www.enci.it/modulistica')">Scarica da ENCI.it →</button></div>`;});
     }
     const c=champComp(dog.id);
     h+=`<div class="stt">Riepilogo risultati inseriti</div><div class="card"><div style="font-size:12px;display:flex;flex-direction:column;gap:6px;color:var(--t2)">
@@ -979,10 +990,10 @@ function renderBreed(){
           <div><div style="font-weight:700;font-size:11px;color:var(--pk);margin-bottom:2px">${dog?dog.emoji+' '+dog.name:'?'}</div>
             <div style="font-weight:700;font-size:13px">${fd(heat.startDate)} → ${heat.endDate?fd(heat.endDate):'in corso'}</div>
             ${heat.duration?`<div style="font-size:10px;color:var(--t2)">Durata: ${heat.duration} giorni</div>`:''}
-            ${heat.matedWith?`<div style="font-size:10px;color:var(--t2)">Con: ${heat.matedWith}</div>`:''}
+            ${heat.matedWith?`<div style="font-size:10px;color:var(--t2)">Con: ${esc(heat.matedWith)}</div>`:''}
           </div>${heat.mated?`<span class="badge bk2">Accoppiata</span>`:`<span class="badge bn">Non accopp.</span>`}
         </div>
-        ${heat.notes?`<div style="font-size:10px;color:var(--t3);margin-top:3px;font-style:italic">${heat.notes}</div>`:''}
+        ${heat.notes?`<div style="font-size:10px;color:var(--t3);margin-top:3px;font-style:italic">${esc(heat.notes)}</div>`:''}
       </div>`;
     });
   } else {
@@ -1010,7 +1021,7 @@ function renderHeatForm(){
   const fem=females();
   document.getElementById('heatf-c').innerHTML=`<button class="bk" onclick="go('breeding')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Allevamento</button>
   <h2 style="font-size:20px;margin-bottom:16px">${heat?'Modifica calore':'Nuovo calore'}</h2>
-  <div class="fg"><label class="fl">Cagnina *</label><select class="fi fsl" id="hd"><option value="">Seleziona…</option>${fem.map(d=>`<option value="${d.id}"${did===d.id?' selected':''}>${d.emoji||'🐶'} ${d.name}</option>`).join('')}</select></div>
+  <div class="fg"><label class="fl">Cagnina *</label><select class="fi fsl" id="hd"><option value="">Seleziona…</option>${fem.map(d=>`<option value="${d.id}"${did===d.id?' selected':''}>${d.emoji||'🐶'} ${esc(d.name)}</option>`).join('')}</select></div>
   <div class="r2"><div class="fg"><label class="fl">Data inizio *</label><input class="fi" id="hs" type="date" value="${heat?.startDate||''}" onchange="calcHD()"></div><div class="fg"><label class="fl">Data fine</label><input class="fi" id="he" type="date" value="${heat?.endDate||''}" onchange="calcHD()"></div></div>
   <p id="hdur" style="font-size:11px;color:var(--t2);margin-bottom:12px">${heat?.duration?`Durata: <strong>${heat.duration} giorni</strong>`:''}</p>
   <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px"><input type="checkbox" id="hm"${heat?.mated?' checked':''} style="width:15px;height:15px;accent-color:var(--pk)">Accoppiata durante questo calore</label></div>
@@ -1036,7 +1047,7 @@ function renderLitterForm(){
   const l=S.editLitterId?S.litters.find(x=>x.id===S.editLitterId):null;const fem=females();
   document.getElementById('litf-c').innerHTML=`<button class="bk" onclick="go('breeding')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Allevamento</button>
   <h2 style="font-size:20px;margin-bottom:16px">${l?'Modifica cucciolata':'Nuova cucciolata'}</h2>
-  <div class="fg"><label class="fl">Madre *</label><select class="fi fsl" id="lm"><option value="">Seleziona…</option>${fem.map(d=>`<option value="${d.id}"${l?.motherId===d.id?' selected':''}>${d.emoji||'🐶'} ${d.name}</option>`).join('')}</select></div>
+  <div class="fg"><label class="fl">Madre *</label><select class="fi fsl" id="lm"><option value="">Seleziona…</option>${fem.map(d=>`<option value="${d.id}"${l?.motherId===d.id?' selected':''}>${d.emoji||'🐶'} ${esc(d.name)}</option>`).join('')}</select></div>
   <div class="fg"><label class="fl">Padre (nome / microchip / LOI)</label><input class="fi" id="lf" type="text" placeholder="Nome o identificativo maschio" value="${l?.fatherName||''}"></div>
   <div class="r2"><div class="fg"><label class="fl">Data accoppiamento</label><input class="fi" id="lma" type="date" value="${l?.matingDate||''}" onchange="calcParto()"></div><div class="fg"><label class="fl">Data parto *</label><input class="fi" id="lb" type="date" value="${l?.birthDate||''}"></div></div>
   <p id="parto-prev" style="font-size:11px;color:var(--t3);margin-bottom:12px">${l?.matingDate?`Parto previsto (+63 giorni): <strong>${fd(addD(l.matingDate,63))}</strong>`:''}</p>
@@ -1062,7 +1073,7 @@ function renderLitterDetail(){
   let h=`<button class="bk" onclick="go('breeding')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Allevamento</button>
   <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
     <div><h2 style="font-size:21px">🐣 Cucciolata</h2>
-      <div style="font-size:12px;color:var(--t2);margin-top:3px">${mother?mother.emoji+' '+mother.name:'?'} × ${l.fatherName||'—'}</div>
+      <div style="font-size:12px;color:var(--t2);margin-top:3px">${mother?mother.emoji+' '+mother.name:'?'} × ${esc(l.fatherName)||'—'}</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
         <span class="chip">Parto: ${fd(l.birthDate)}</span>${l.matingDate?`<span class="chip">Accopp.: ${fd(l.matingDate)}</span>`:''}
         <span class="badge bi">${pups.length} cucc.</span>${m>0?`<span class="badge bb">${m}M</span>`:''}${f>0?`<span class="badge bk2">${f}F</span>`:''}
@@ -1070,7 +1081,7 @@ function renderLitterDetail(){
     </div>
     <div style="display:flex;gap:5px"><button class="btn bS sm" onclick="go('litter-form','${l.id}')">✏️</button><button class="btn bA sm" onclick="go('puppy-form',{litId:'${l.id}'})">+ Cucciolo</button></div>
   </div>
-  ${l.notes?`<div class="card" style="margin-bottom:12px;background:var(--acl);border-color:var(--acl)"><p style="font-size:11px;color:var(--t2)">${l.notes}</p></div>`:''}`;
+  ${l.notes?`<div class="card" style="margin-bottom:12px;background:var(--acl);border-color:var(--acl)"><p style="font-size:11px;color:var(--t2)">${esc(l.notes)}</p></div>`:''}`;
   if(!pups.length){h+=`<div class="empty"><div style="font-weight:600;margin-bottom:8px">Nessun cucciolo aggiunto</div><button class="btn bA" onclick="go('puppy-form',{litId:'${l.id}'})">Aggiungi il primo cucciolo</button></div>`;}
   else{
     h+=`<div class="stt">Cuccioli — tocca per modificare/pesare</div>
@@ -1092,9 +1103,9 @@ function renderLitterDetail(){
       const pct=wts.length>=2?Math.round((wts[wts.length-1].val-wts[wts.length-2].val)/wts[wts.length-2].val*100):null;
       h+=`<tr style="border-bottom:1px solid var(--br);cursor:pointer" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''" onclick="go('puppy-form',{litId:'${l.id}',pupId:'${p.id}'})">
         <td style="padding:8px 5px;text-align:center;font-weight:700;color:var(--pr)">${p.num}</td>
-        <td style="padding:8px;font-weight:600">${p.name||'—'}</td>
+        <td style="padding:8px;font-weight:600">${esc(p.name)||'—'}</td>
         <td style="padding:8px 4px;text-align:center;font-weight:800;color:${sc}">${p.sex||'—'}</td>
-        <td style="padding:8px 4px;color:var(--t2);font-size:10px">${p.color||'—'}</td>
+        <td style="padding:8px 4px;color:var(--t2);font-size:10px">${esc(p.color)||'—'}</td>
         <td style="padding:8px 4px;color:var(--t2)">${p.birthTime||'—'}${p.birthDuration?' ('+p.birthDuration+')':''}</td>
         <td style="padding:8px 4px;text-align:right;font-weight:600">${p.birthWeight?p.birthWeight+'g':'—'}</td>
         <td style="padding:8px 4px;text-align:center;color:${lastWt?'var(--ac)':'var(--t3)'}">${lastWt?lastWt.val+'g ('+lastWt.label+')'+(pct!==null?` <span style="font-size:9px;color:${pct>=0?'var(--ok)':'var(--dn)'}">${pct>=0?'+':''}${pct}%</span>`:''):'—'}</td>
@@ -1176,7 +1187,7 @@ function exportPDF(dogId){
   const dog=getDog(dogId);if(!dog)return;
   const recs=dogRecs(dogId),shows=dogShows(dogId),trials=dogTrials(dogId);
   const wnd=window.open('','_blank');
-  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Scheda ${dog.name}</title><style>
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Scheda ${esc(dog.name)}</title><style>
     body{font-family:Arial,sans-serif;max-width:800px;margin:20px auto;font-size:13px;color:#222}
     h1{font-size:22px;color:#7B4F2A;border-bottom:2px solid #7B4F2A;padding-bottom:8px}
     h2{font-size:15px;color:#3A6B48;margin:18px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px}
@@ -1186,20 +1197,20 @@ function exportPDF(dogId){
     .chip{display:inline-block;background:#EDE7DF;padding:2px 8px;border-radius:10px;font-size:11px;margin:2px}
     @media print{body{margin:0}}
   </style></head><body>
-  <h1>🐾 ${dog.emoji||''} ${dog.name}</h1>
+  <h1>🐾 ${dog.emoji||''} ${esc(dog.name)}</h1>
   <table><tr><th colspan="4">Anagrafica</th></tr>
     <tr><td><strong>Razza</strong></td><td>${dog.breed||'—'}</td><td><strong>Sesso</strong></td><td>${dog.gender||'—'}</td></tr>
     <tr><td><strong>Data nascita</strong></td><td>${fd(dog.birthDate)}</td><td><strong>Microchip</strong></td><td>${dog.microchip||'—'}</td></tr>
     <tr><td><strong>LOI/ENCI</strong></td><td>${dog.loi||'—'}</td><td><strong>Affisso</strong></td><td>${dog.affisso||'—'}</td></tr>
     <tr><td><strong>Colore</strong></td><td>${dog.color||'—'}</td><td></td><td></td></tr>
-    ${dog.notes?`<tr><td><strong>Note</strong></td><td colspan="3">${dog.notes}</td></tr>`:''}
+    ${dog.notes?`<tr><td><strong>Note</strong></td><td colspan="3">${esc(dog.notes)}</td></tr>`:''}
   </table>`;
   if(recs.length){html+=`<h2>Storia Clinica</h2><table><tr><th>Data</th><th>Trattamento</th><th>Tipo</th><th>Prossima scadenza</th></tr>`;
-    recs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(r=>{html+=`<tr><td>${fd(r.date)}</td><td>${r.name}</td><td>${REC_CATS[r.category]?.l||r.category}</td><td>${fd(r.dueDate)}</td></tr>`;});html+=`</table>`;}
+    recs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(r=>{html+=`<tr><td>${fd(r.date)}</td><td>${esc(r.name)}</td><td>${REC_CATS[r.category]?.l||r.category}</td><td>${fd(r.dueDate)}</td></tr>`;});html+=`</table>`;}
   if(shows.length){html+=`<h2>Esposizioni di Bellezza</h2><table><tr><th>Data</th><th>Luogo</th><th>Classe</th><th>Qualifica</th><th>Certificati</th></tr>`;
-    shows.forEach(s=>{html+=`<tr><td>${fd(s.date)}</td><td>${s.location||'—'}</td><td>${s.classe||'—'}</td><td>${s.qual||'—'}</td><td>${s.certs?.join(', ')||'—'}</td></tr>`;});html+=`</table>`;}
+    shows.forEach(s=>{html+=`<tr><td>${fd(s.date)}</td><td>${esc(s.location)||'—'}</td><td>${s.classe||'—'}</td><td>${s.qual||'—'}</td><td>${s.certs?.join(', ')||'—'}</td></tr>`;});html+=`</table>`;}
   if(trials.length){html+=`<h2>Prove di Lavoro</h2><table><tr><th>Data</th><th>Luogo</th><th>Tipo prova</th><th>Qualifica</th><th>Certificati</th></tr>`;
-    trials.forEach(t=>{const tt=TRIAL_TYPES.find(x=>x.id===t.type);html+=`<tr><td>${fd(t.date)}</td><td>${t.location||'—'}</td><td>${tt?.label||t.type}</td><td>${t.qual||'—'}</td><td>${t.certs?.join(', ')||'—'}${t.speciale?' (Prova Speciale)':''}</td></tr>`;});html+=`</table>`;}
+    trials.forEach(t=>{const tt=TRIAL_TYPES.find(x=>x.id===t.type);html+=`<tr><td>${fd(t.date)}</td><td>${esc(t.location)||'—'}</td><td>${tt?.label||t.type}</td><td>${t.qual||'—'}</td><td>${t.certs?.join(', ')||'—'}${t.speciale?' (Prova Speciale)':''}</td></tr>`;});html+=`</table>`;}
   html+=`<p style="margin-top:20px;font-size:10px;color:#999">Generato da VetTrack Pro il ${fd(tod())}</p>
   <script>window.onload=()=>window.print();<\/script></body></html>`;
   wnd.document.write(html);wnd.document.close();
@@ -1210,16 +1221,32 @@ async function sendEmail(){
   const btn=document.getElementById('send-btn');if(!btn)return;
   const up=upcoming(S.cfg.daysAhead);
   if(!up.length){toast('Nessuna scadenza!');return;}
+  if(!S.cfg.email){toast('Imposta la tua email nelle impostazioni');return;}
   btn.innerHTML='<span class="sp"></span> Invio…';btn.disabled=true;
-  const lista=up.map(r=>{const s=r._d<0?`⚠️ SCADUTO ${Math.abs(r._d)}gg fa`:`📅 tra ${r._d} giorni`;return`• ${r._dog?r._dog.name:'?'}: ${r.name} (${REC_CATS[r.category]?.l||r.category}) — ${fd(r.dueDate)} — ${s}`;}).join('\n');
-  const cani=S.dogs.map(d=>`• ${d.name} (${d.breed||'—'}, ${d.gender||'—'})${d.microchip?' — chip: '+d.microchip:''}`).join('\n');
-  const extra=S.litters.length?`\n\nCUCCIOLATE: ${S.litters.length} | CUCCIOLI: ${S.puppies.length}`:'';
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:`Invia email Gmail a ${S.cfg.email}.\nOggetto: 🐾 VetTrack Pro – Promemoria scadenze veterinarie\n\nCorpo email in italiano, formattato bene:\n\nSCADENZE NEI PROSSIMI ${S.cfg.daysAhead} GIORNI:\n${lista}\n\nCANI REGISTRATI:\n${cani}${extra}\n\nFirma: VetTrack Pro – Sistema gestione allevamento`}],mcp_servers:[{type:'url',url:'https://gmail.mcp.claude.com/mcp',name:'gmail-mcp'}]})});
-    const data=await res.json();if(data.error)throw new Error(data.error.message);
-    await fbSet('lastEmail',tod());toast('✓ Email inviata!');
-  }catch(e){toast('Errore: '+(e.message||'Riprova'));console.error(e);}
-  btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg> Invia promemoria email`;
+  const lista=up.map(r=>{
+    const s=r._d<0?('⚠️ SCADUTO '+Math.abs(r._d)+'gg fa'):('📅 tra '+r._d+' giorni');
+    return '• '+(r._dog?r._dog.name:'?')+': '+r.name+' ('+(REC_CATS[r.category]?.l||r.category)+') — '+fd(r.dueDate)+' — '+s;
+  }).join('
+');
+  const cani=S.dogs.map(d=>'• '+d.name+' ('+(d.breed||'—')+', '+(d.gender||'—')+')').join('
+');
+  const extra=S.litters.length?'
+
+CUCCIOLATE: '+S.litters.length+' | CUCCIOLI: '+S.puppies.length:'';
+  const subject='🐾 VetTrack Pro — Promemoria scadenze veterinarie';
+  const body='Ciao,
+
+Ecco le scadenze veterinarie nei prossimi '+S.cfg.daysAhead+' giorni per i tuoi Kurzhaar:
+
+'+lista+'
+
+CANI:
+'+cani+extra+'
+
+VetTrack Pro — Di Casa Parodi';
+  const ok = await sendEmailViaGmail(S.cfg.email, subject, body);
+  if(ok){ await fbSet('lastEmail',tod()); toast('✓ Email inviata!'); }
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg> Invia promemoria email';
   btn.disabled=false;
 }
 
@@ -1233,9 +1260,7 @@ async function autoCheck(){
 
 async function createCalEvent(name,dueDate,dogName){
   if(!dueDate)return;
-  const title = name+' — '+dogName;
-  const desc = 'Promemoria veterinario da VetTrack Pro\nAllevamento Di Casa Parodi';
-  await createCalendarEvent(title, dueDate, desc);
+  await createCalendarEvent(name+' — '+dogName, dueDate, 'Promemoria veterinario da VetTrack Pro — Di Casa Parodi');
 }
 
 load();
