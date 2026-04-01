@@ -1091,17 +1091,14 @@ async function sendEmail(){
   if(!S.cfg.email){toast('Imposta la tua email nelle impostazioni');return;}
   btn.innerHTML='<span class="sp"></span> Invio...';btn.disabled=true;
   const NL='\n';
-  const lista=up.map(r=>{
-    const s=r._d<0?('SCADUTO '+Math.abs(r._d)+'gg fa'):('tra '+r._d+' giorni');
-    return '- '+(r._dog?r._dog.name:'?')+': '+r.name+' ('+(REC_CATS[r.category]?.l||r.category)+') - '+fd(r.dueDate)+' - '+s;
-  }).join(NL);
+  const lista=up.map(r=>{const s=r._d<0?('SCADUTO '+Math.abs(r._d)+'gg fa'):('tra '+r._d+' giorni');return '- '+(r._dog?r._dog.name:'?')+': '+r.name+' ('+(REC_CATS[r.category]?.l||r.category)+') - '+fd(r.dueDate)+' - '+s;}).join(NL);
   const cani=S.dogs.map(d=>'- '+d.name+' ('+(d.breed||'')+', '+(d.gender||'')+')').join(NL);
   const subject='VetTrack Pro - Promemoria scadenze veterinarie';
-  const body='Ciao Alessio,'+NL+NL+'Scadenze nei prossimi '+S.cfg.daysAhead+' giorni:'+NL+NL+lista+NL+NL+'Cani registrati:'+NL+cani+NL+NL+'VetTrack Pro - Di Casa Parodi';
+  const body='Ciao Alessio,'+NL+NL+'Scadenze nei prossimi '+S.cfg.daysAhead+' giorni:'+NL+NL+lista+NL+NL+'Cani:'+NL+cani+NL+NL+'VetTrack Pro - Di Casa Parodi';
   const ok=await sendEmailViaEmailJS(S.cfg.email,subject,body);
   if(ok){await fbSet('lastEmail',tod());toast('Email inviata!');}
   else{toast('Errore invio email');}
-  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg> Invia promemoria email';
+  btn.innerHTML='Invia promemoria email';
   btn.disabled=false;
 }
 async function autoCheck(){
