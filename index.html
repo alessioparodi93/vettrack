@@ -112,7 +112,6 @@ details summary::after{content:' ▾'} details[open] summary::after{content:' �
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
-
 // ============ FIREBASE CONFIG ============
 const FB_CFG = {
   apiKey:"AIzaSyBWo1p1J33Bu0zESfHB5jUf6J8lXu6x31c",
@@ -122,23 +121,16 @@ const FB_CFG = {
   messagingSenderId:"904798156271",
   appId:"1:904798156271:web:66283caa4df669cf5ff21a"
 };
-
-// EmailJS config (no OAuth token needed - secure frontend email)
-const EJS = {
-  serviceId: "service_rxoxl7j",
-  templateId: "template_h9aod4k",
-  publicKey: "C_b1haurReWMrNvBT"
-};
+const EJS={serviceId:"service_rxoxl7j",templateId:"template_h9aod4k",publicKey:"C_b1haurReWMrNvBT"};
 
 firebase.initializeApp(FB_CFG);
-const auth = firebase.auth();
-const db = firebase.firestore();
-let currentUser = null;
+const auth=firebase.auth();
+const db=firebase.firestore();
+let currentUser=null;
 
-// Offline persistence
-db.enablePersistence({synchronizeTabs:true}).catch(e => console.log("Persistence:", e.code));
+db.enablePersistence({synchronizeTabs:true}).catch(e=>console.log("Persistence:",e.code));
 
-// ============ AUTH - solo scope base, niente Gmail/Drive/Calendar ============
+// ============ AUTH ============
 function showLoginScreen(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app-content').style.display='none';
@@ -148,87 +140,125 @@ function hideLoginScreen(){
   document.getElementById('app-content').style.display='block';
 }
 function loginWithGoogle(){
-  const provider = new firebase.auth.GoogleAuthProvider();
-  // Solo scope base - email e profilo. Niente Gmail/Drive/Calendar
-  auth.signInWithPopup(provider).catch(e => toast('Errore login: ' + e.message));
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e=>toast('Errore login: '+e.message));
 }
 function logout(){
-  if(!confirm('Vuoi uscire?')) return;
+  if(!confirm('Vuoi uscire?'))return;
   auth.signOut().then(()=>{
     S.dogs=[];S.records=[];S.heats=[];S.litters=[];S.puppies=[];S.shows=[];S.trials=[];
     showLoginScreen();
   });
 }
 
-// ============ FIRESTORE ============
-function userDocRef(key){
-  return db.collection('users').doc(currentUser.uid).collection('data').doc(key);
-}
-async function fbGet(key){
+// ============ FIRESTORE - ARCHITETTURA A DOCUMENTI SINGOLI ============
+function col(name){return db.collection('users').doc(currentUser.uid).collection(name);}
+
+async function fbLoadAll(name){
   try{
-    const snap = await userDocRef(key).get();
-    return snap.exists ? snap.data().value : null;
-  }catch(e){console.error('fbGet',key,e);return null;}
-}
-async function fbSet(key,value){
-  try{
-    await userDocRef(key).set({value,updatedAt:new Date().toISOString()});
-  }catch(e){console.error('fbSet',key,e);}
+    const snap=await col(name).get();
+    return snap.docs.map(d=>({...d.data(),id:d.id}));
+  }catch(e){console.error('fbLoadAll',name,e);return[];}
 }
 
-// ============ EMAILJS - invio sicuro senza token OAuth ============
-async function sendEmailViaEmailJS(to, subject, body){
+async function fbSaveOne(name,item){
   try{
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        service_id: EJS.serviceId,
-        template_id: EJS.templateId,
-        user_id: EJS.publicKey,
-        template_params: {
-          to_email: to,
-          subject: subject,
-          body: body
-        }
-      })
+    const {id,...data}=item;
+    await col(name).doc(id).set({...data,_updatedAt:new Date().toISOString()});
+    return true;
+  }catch(e){console.error('fbSaveOne',name,e);toast('Errore salvataggio: '+e.message);return false;}
+}
+
+async function fbDeleteOne(name,id){
+  try{await col(name).doc(id).delete();return true;}
+  catch(e){console.error('fbDeleteOne',name,e);return false;}
+}
+
+async function fbGetCfg(){
+  try{
+    const snap=await db.collection('users').doc(currentUser.uid).collection('cfg').doc('main').get();
+    return snap.exists?snap.data():{email:'',daysAhead:60,vetName:'',vetPhone:''};
+  }catch(e){return{email:'',daysAhead:60,vetName:'',vetPhone:''};}
+}
+
+async function fbSaveCfg(cfg){
+  try{await db.collection('users').doc(currentUser.uid).collection('cfg').doc('main').set(cfg);return true;}
+  catch(e){return false;}
+}
+
+async function fbGetLastEmail(){
+  try{
+    const snap=await db.collection('users').doc(currentUser.uid).collection('cfg').doc('lastEmail').get();
+    return snap.exists?snap.data().date:'';
+  }catch(e){return'';}
+}
+
+async function fbSetLastEmail(){
+  try{await db.collection('users').doc(currentUser.uid).collection('cfg').doc('lastEmail').set({date:tod()});}
+  catch(e){}
+}
+
+// ============ LOAD - nuova architettura ============
+async function load(){
+  const [dogs,records,heats,litters,puppies,shows,trials,cfg]=await Promise.all([
+    fbLoadAll('dogs'),fbLoadAll('records'),fbLoadAll('heats'),
+    fbLoadAll('litters'),fbLoadAll('puppies'),fbLoadAll('shows'),
+    fbLoadAll('trials'),fbGetCfg()
+  ]);
+  S.dogs=dogs;S.records=records;S.heats=heats;S.litters=litters;
+  S.puppies=puppies;S.shows=shows;S.trials=trials;S.cfg=cfg;
+  renderAll();autoCheck();
+}
+
+// sv - salva singolo documento con await e feedback
+const sv={
+  d:async(dog)=>{const ok=await fbSaveOne('dogs',dog);if(!ok)toast('Errore salvataggio cane');return ok;},
+  r:async(rec)=>{const ok=await fbSaveOne('records',rec);if(!ok)toast('Errore salvataggio trattamento');return ok;},
+  h:async(heat)=>{const ok=await fbSaveOne('heats',heat);if(!ok)toast('Errore salvataggio calore');return ok;},
+  l:async(lit)=>{const ok=await fbSaveOne('litters',lit);if(!ok)toast('Errore salvataggio cucciolata');return ok;},
+  p:async(pup)=>{const ok=await fbSaveOne('puppies',pup);if(!ok)toast('Errore salvataggio cucciolo');return ok;},
+  s:async(show)=>{const ok=await fbSaveOne('shows',show);if(!ok)toast('Errore salvataggio esposizione');return ok;},
+  t:async(trial)=>{const ok=await fbSaveOne('trials',trial);if(!ok)toast('Errore salvataggio prova');return ok;},
+  c:async(cfg)=>{const ok=await fbSaveCfg(cfg);if(!ok)toast('Errore salvataggio impostazioni');return ok;}
+};
+
+const del={
+  d:async(id)=>fbDeleteOne('dogs',id),
+  r:async(id)=>fbDeleteOne('records',id),
+  h:async(id)=>fbDeleteOne('heats',id),
+  l:async(id)=>fbDeleteOne('litters',id),
+  p:async(id)=>fbDeleteOne('puppies',id),
+  s:async(id)=>fbDeleteOne('shows',id),
+  t:async(id)=>fbDeleteOne('trials',id)
+};
+
+// ============ EMAILJS ============
+async function sendEmailViaEmailJS(to,subject,body){
+  try{
+    const res=await fetch('https://api.emailjs.com/api/v1.0/email/send',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({service_id:EJS.serviceId,template_id:EJS.templateId,user_id:EJS.publicKey,
+        template_params:{to_email:to,subject:subject,body:body}})
     });
-    return res.status === 200;
-  }catch(e){
-    console.error('EmailJS error:', e);
-    return false;
-  }
+    return res.status===200;
+  }catch(e){console.error('EmailJS error:',e);return false;}
 }
 
-// ============ CALENDAR - file .ics scaricabile ============
-function downloadICS(title, date, description){
-  const d = date.replace(/-/g,'');
-  const now = new Date().toISOString().replace(/[-:.]/g,'').slice(0,15)+'Z';
-  const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//VetTrack Pro//Di Casa Parodi//IT',
-    'BEGIN:VEVENT',
-    'UID:'+now+'@vettrack',
-    'DTSTAMP:'+now,
-    'DTSTART;VALUE=DATE:'+d,
-    'DTEND;VALUE=DATE:'+d,
-    'SUMMARY:🐾 '+title,
-    'DESCRIPTION:'+description,
-    'BEGIN:VALARM',
-    'TRIGGER:-P7D',
-    'ACTION:DISPLAY',
-    'DESCRIPTION:Promemoria: '+title,
-    'END:VALARM',
-    'END:VEVENT',
-    'END:VCALENDAR'
-  ].join('\r\n');
-  const blob = new Blob([ics], {type:'text/calendar'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download=title.replace(/[^a-zA-Z0-9]/g,'_')+'.ics';
-  a.click(); URL.revokeObjectURL(url);
-  toast('📅 Evento scaricato — aprilo per aggiungerlo al calendario!');
+// ============ CALENDAR ICS ============
+function downloadICS(title,date,description){
+  const d=date.replace(/-/g,'');
+  const now=new Date().toISOString().replace(/[-:.]/g,'').slice(0,15)+'Z';
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//VetTrack Pro//Di Casa Parodi//IT',
+    'BEGIN:VEVENT','UID:'+now+'@vettrack','DTSTAMP:'+now,
+    'DTSTART;VALUE=DATE:'+d,'DTEND;VALUE=DATE:'+d,
+    'SUMMARY:🐾 '+title,'DESCRIPTION:'+description,
+    'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY','DESCRIPTION:Promemoria: '+title,'END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=title.replace(/[^a-zA-Z0-9]/g,'_')+'.ics';
+  a.click();URL.revokeObjectURL(url);
+  toast('📅 Evento scaricato!');
 }
 
 // ============ AUTH STATE ============
@@ -236,7 +266,7 @@ auth.onAuthStateChanged(async(user)=>{
   if(user){
     currentUser=user;
     const uEl=document.getElementById('user-info');
-    if(uEl) uEl.innerHTML=`
+    if(uEl)uEl.innerHTML=`
       <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--br)" onerror="this.style.display='none'">
       <span style="font-size:11px;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.displayName||user.email}</span>
       <button class="btn bS sm" onclick="logout()" style="padding:4px 10px;font-size:10px">Esci</button>
@@ -248,6 +278,98 @@ auth.onAuthStateChanged(async(user)=>{
     showLoginScreen();
   }
 });
+
+
+// ============ TITOLI ============
+const CHAMP_LABELS={
+  'CIL_F':'Campione Italiano di Lavoro',
+  'CIL_M':'Campione Italiano di Lavoro',
+  'CCS':'Campione Italiano Caccia a Starne',
+  'CSP':'Campione Italiano Caccia Specialista',
+  'CPC_F':'Campione Italiano Prove Classiche',
+  'CPC_M':'Campione Italiano Prove Classiche',
+  'CIB':'Campione Italiano di Bellezza'
+};
+
+function getAutoTitles(dogId){
+  const dog=getDog(dogId);if(!dog)return[];
+  const gender=dog.gender;
+  const titles=CHAMP_TITLES.filter(ct=>ct.gender==='*'||ct.gender===gender);
+  const earned=[];
+  titles.forEach(ct=>{
+    const reqs=getChampReqs(ct.id,dogId);
+    const total=reqs.length;
+    const done=reqs.filter(r=>r.ok&&!r.warn).length;
+    if(total>0&&done===total){
+      earned.push({id:ct.id,label:CHAMP_LABELS[ct.id]||ct.label,auto:true});
+    }
+  });
+  return earned;
+}
+
+function getAllTitles(dogId){
+  const dog=getDog(dogId);if(!dog)return[];
+  const auto=getAutoTitles(dogId);
+  const manual=(dog.manualTitles||[]);
+  // Merge: auto titles first, then manual ones not already present
+  const autoIds=new Set(auto.map(t=>t.id));
+  const manualFiltered=manual.filter(t=>!autoIds.has(t.id));
+  return[...auto,...manualFiltered];
+}
+
+function renderTitlesSection(dog){
+  const allTitles=getAllTitles(dog.id);
+  let h='<div class="divider"></div>';
+  h+='<div class="stt" style="margin-top:0">🏆 Titoli conquistati</div>';
+  if(allTitles.length){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+    allTitles.forEach(t=>{
+      const badge=t.auto?'bgd':'bb';
+      h+=`<span class="badge ${badge}" style="padding:5px 10px;font-size:11px">${t.auto?'🤖':'✍️'} ${t.label}</span>`;
+    });
+    h+='</div>';
+  }else{
+    h+='<p style="font-size:11px;color:var(--t3);margin-bottom:10px">Nessun titolo ancora. I titoli ENCI appaiono automaticamente quando completi tutti i requisiti nel tracker.</p>';
+  }
+  h+=`<button class="btn bS sm" onclick="showTitleForm('${dog.id}')">+ Aggiungi titolo</button>`;
+  h+=`<div id="title-form-${dog.id}" style="display:none;margin-top:10px" class="card">
+    <div class="fg"><label class="fl">Titolo</label><input class="fi" id="tf-title" type="text" placeholder="Es: Campione Internazionale di Bellezza, Derby Winner, Campione Mondiale..."></div>
+    <div class="fg"><label class="fl">Ente / Organizzazione</label><input class="fi" id="tf-org" type="text" placeholder="Es: ENCI, FCI, VDH, AKC..."></div>
+    <div class="fg"><label class="fl">Anno</label><input class="fi" id="tf-year" type="number" min="2000" max="2099" placeholder="${new Date().getFullYear()}"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bP sm" onclick="saveTitle('${dog.id}')">Salva titolo</button>
+      <button class="btn bS sm" onclick="document.getElementById('title-form-${dog.id}').style.display='none'">Annulla</button>
+    </div>
+  </div>`;
+  return h;
+}
+
+function showTitleForm(dogId){
+  const f=document.getElementById('title-form-'+dogId);
+  if(f)f.style.display='block';
+}
+
+async function saveTitle(dogId){
+  const dog=getDog(dogId);if(!dog)return;
+  const title=document.getElementById('tf-title')?.value.trim();
+  if(!title){toast('Inserisci il nome del titolo');return;}
+  const org=document.getElementById('tf-org')?.value.trim()||'';
+  const year=document.getElementById('tf-year')?.value||new Date().getFullYear();
+  if(!dog.manualTitles)dog.manualTitles=[];
+  dog.manualTitles.push({id:uid(),label:title+(org?' ('+org+')':'')+(year?' '+year:''),auto:false});
+  const ok=await sv.d(dog);
+  if(ok){
+    const f=document.getElementById('title-form-'+dogId);
+    if(f)f.style.display='none';
+    swDet('titoli');renderDetail();toast('Titolo aggiunto! 🏆');
+  }
+}
+
+async function deleteTitle(dogId,titleId){
+  const dog=getDog(dogId);if(!dog)return;
+  dog.manualTitles=(dog.manualTitles||[]).filter(t=>t.id!==titleId);
+  await sv.d(dog);swDet('titoli');renderDetail();toast('Titolo eliminato');
+}
 
 // VetTrack Pro - Full JavaScript
 const VACCINES=[{id:'dhppi',label:'DHPPi+L4 — Cimurro/Epatite/Parvo/Para+Lepto 4 ceppi',days:365},{id:'rabbia',label:'Rabbia',days:365},{id:'leishmania',label:'Leishmania',days:365},{id:'filaria',label:'Filaria',days:365},{id:'tosse',label:'Tosse dei Canili (Bordetella)',days:365},{id:'altro_vax',label:'Altro vaccino...',days:null}];
@@ -279,23 +401,8 @@ function esc(v){
 
 const S={dogs:[],records:[],heats:[],litters:[],puppies:[],shows:[],trials:[],cfg:{email:'',daysAhead:60,vetName:'',vetPhone:''},page:'dashboard',dogId:null,detailTab:'salute',editDogId:null,editRecId:null,editRecDogId:null,newRecCat:'vaccino',editShowId:null,editShowDogId:null,editTrialId:null,editTrialDogId:null,champDogId:null,champTitle:null,breedTab:'calori',editHeatId:null,editHeatDogId:null,editLitterId:null,currentLitterId:null,editPuppyId:null,editPuppyLitterId:null,selEmoji:'🐶',selCerts:[]};
 
-async function load(){
-  S.dogs    = await fbGet('dogs')    || [];
-  S.records = await fbGet('records') || [];
-  S.heats   = await fbGet('heats')   || [];
-  S.litters = await fbGet('litters') || [];
-  S.puppies = await fbGet('puppies') || [];
-  S.shows   = await fbGet('shows')   || [];
-  S.trials  = await fbGet('trials')  || [];
-  S.cfg     = await fbGet('cfg')     || {email:'',daysAhead:60,vetName:'',vetPhone:''};
-  renderAll(); autoCheck();
-}
-const sv={
-  d:()=>fbSet('dogs',S.dogs), r:()=>fbSet('records',S.records),
-  h:()=>fbSet('heats',S.heats), l:()=>fbSet('litters',S.litters),
-  p:()=>fbSet('puppies',S.puppies), s:()=>fbSet('shows',S.shows),
-  t:()=>fbSet('trials',S.trials), c:()=>fbSet('cfg',S.cfg)
-};
+// load(), sv{} defined in firebase_v2.js
+
 
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const fd=d=>d?new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'—';
@@ -460,7 +567,7 @@ function renderDogs(){
         ${d.microchip?`<div style="font-size:10px;color:var(--t3)">🔖 ${esc(d.microchip)}</div>`:''}
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">
           ${sc>0?`<span class="badge bd">${sc} scad.</span>`:''}${ug>0?`<span class="badge bw">${ug} urg.</span>`:''}
-          ${dogShows(d.id).length>0?`<span class="badge bgd">${dogShows(d.id).length} expo</span>`:''}
+          ${getAllTitles(d.id).length>0?`<span class="badge bgd">🏆 ${getAllTitles(d.id).length}</span>`:''} ${dogShows(d.id).length>0?`<span class="badge bgd">${dogShows(d.id).length} expo</span>`:''}
           ${dogTrials(d.id).length>0?`<span class="badge bi">${dogTrials(d.id).length} prove</span>`:''}
           <span class="badge bn">${rc.length} tratt.</span>
         </div>
@@ -502,6 +609,7 @@ function renderDetail(){
   if(t==='salute')h+=renderSaluteTab(dog);
   else if(t==='campionati')h+=renderCampionatiTab(dog);
   else if(t==='riprod')h+=renderRiprodTab(dog);
+  else if(t==='titoli')h+=renderTitlesSection(dog);
   else if(t==='docs')h+=renderDocsTab(dog);
   h+=`<div class="divider"></div><div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn bS sm" onclick="exportPDF('${dog.id}')">📄 Esporta PDF</button>
@@ -616,22 +724,47 @@ function renderDocsTab(dog){
   return h;
 }
 function showDocForm(){const f=document.getElementById('doc-form');if(f)f.style.display='block';}
-function saveDoc(dogId){const dog=getDog(dogId);if(!dog)return;if(!dog.docs)dog.docs=[];dog.docs.push({type:document.getElementById('doc-type').value,name:document.getElementById('doc-name').value.trim(),url:document.getElementById('doc-url').value.trim()});sv.d();swDet('docs');renderDetail();toast('Documento aggiunto!');}
-function delDoc(dogId,idx){const dog=getDog(dogId);if(!dog)return;dog.docs.splice(idx,1);sv.d();swDet('docs');renderDetail();toast('Eliminato');}
+async function saveDoc(dogId){const dog=getDog(dogId);if(!dog)return;if(!dog.docs)dog.docs=[];dog.docs.push({type:document.getElementById('doc-type').value,name:document.getElementById('doc-name').value.trim(),url:document.getElementById('doc-url').value.trim()});await sv.d(dog);swDet('docs');renderDetail();toast('Documento aggiunto!');}
+async function delDoc(dogId,idx){const dog=getDog(dogId);if(!dog)return;dog.docs.splice(idx,1);await sv.d(dog);swDet('docs');renderDetail();toast('Eliminato');}
 function openLink(url){if(url)window.open(url,'_blank');}
-function delDog(id){
+async function delDog(id){
   if(!confirm('Eliminare questo cane e tutti i suoi dati?'))return;
-  S.dogs=S.dogs.filter(d=>d.id!==id);S.records=S.records.filter(r=>r.dogId!==id);S.heats=S.heats.filter(h=>h.dogId!==id);S.shows=S.shows.filter(s=>s.dogId!==id);S.trials=S.trials.filter(t=>t.dogId!==id);
-  const lids=S.litters.filter(l=>l.motherId===id).map(l=>l.id);S.litters=S.litters.filter(l=>l.motherId!==id);S.puppies=S.puppies.filter(p=>!lids.includes(p.litterId));
-  sv.d();sv.r();sv.h();sv.s();sv.t();sv.l();sv.p();renderAll();go('dogs');toast('Cane eliminato');
+  toast('Eliminazione in corso...');
+  await del.d(id);
+  for(const r of S.records.filter(r=>r.dogId===id)) await del.r(r.id);
+  for(const s of S.shows.filter(s=>s.dogId===id)) await del.s(s.id);
+  for(const t of S.trials.filter(t=>t.dogId===id)) await del.t(t.id);
+  for(const h of S.heats.filter(h=>h.dogId===id)) await del.h(h.id);
+  const lids=S.litters.filter(l=>l.motherId===id).map(l=>l.id);
+  for(const lid of lids){for(const p of S.puppies.filter(p=>p.litterId===lid)) await del.p(p.id);await del.l(lid);}
+  S.dogs=S.dogs.filter(d=>d.id!==id);S.records=S.records.filter(r=>r.dogId!==id);
+  S.shows=S.shows.filter(s=>s.dogId!==id);S.trials=S.trials.filter(t=>t.dogId!==id);
+  S.heats=S.heats.filter(h=>h.dogId!==id);S.litters=S.litters.filter(l=>l.motherId!==id);
+  S.puppies=S.puppies.filter(p=>!lids.includes(p.litterId));
+  renderAll();go('dogs');toast('Cane eliminato');
 }
 function uploadPhoto(event,dogId){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const MAX=300;let w=img.width,h=img.height;if(w>h){if(w>MAX){h=h*(MAX/w);w=MAX;}}else{if(h>MAX){w=w*(MAX/h);h=MAX;}}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);const dog=getDog(dogId);if(dog){dog.photo=c.toDataURL('image/jpeg',0.75);sv.d();renderDetail();toast('Foto aggiornata!');}};img.src=e.target.result;};reader.readAsDataURL(file);
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=async()=>{
+      const c=document.createElement('canvas');
+      const MAX=150;
+      let w=img.width,h=img.height;
+      if(w>h){if(w>MAX){h=Math.round(h*(MAX/w));w=MAX;}}
+      else{if(h>MAX){w=Math.round(w*(MAX/h));h=MAX;}}
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      const b64=c.toDataURL('image/jpeg',0.5);
+      const kb=Math.round(b64.length*0.75/1024);
+      const dog=getDog(dogId);
+      if(dog){dog.photo=b64;await sv.d(dog);renderDetail();toast('Foto aggiornata! ('+kb+'KB)');}
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
-
-// DOG FORM
 function renderDogForm(){
   const dog=S.editDogId?getDog(S.editDogId):null;S.selEmoji=dog?.emoji||'🐶';
   const ep=EMOJIS.map(e=>`<button type="button" class="eb${e===S.selEmoji?' sel':''}" id="em-${e.codePointAt(0)}" onclick="pickE('${e}')">${e}</button>`).join('');
@@ -648,12 +781,13 @@ function renderDogForm(){
   <button class="btn bP full" onclick="saveDog('${dog?.id||''}')">${dog?'Salva modifiche':'Aggiungi cane'}</button>`;
 }
 function pickE(e){document.querySelectorAll('.eb').forEach(b=>b.classList.remove('sel'));document.getElementById('em-'+e.codePointAt(0))?.classList.add('sel');S.selEmoji=e;}
-function saveDog(eid){
+async function saveDog(eid){
   const name=document.getElementById('fn').value.trim();if(!name){toast('Inserisci il nome');return;}
   const ex=eid?getDog(eid):null;
   const d={id:eid||uid(),name,emoji:S.selEmoji||'🐶',photo:ex?.photo||null,docs:ex?.docs||[],champManual:ex?.champManual||{},breed:document.getElementById('fb').value.trim(),gender:document.getElementById('fgn').value,birthDate:document.getElementById('fd').value,color:document.getElementById('fc').value.trim(),microchip:document.getElementById('fm').value.trim(),loi:document.getElementById('fl2').value.trim(),affisso:document.getElementById('fa').value.trim(),heatInterval:parseInt(document.getElementById('fci')?.value||6),notes:document.getElementById('fn2').value.trim()};
   if(eid)S.dogs=S.dogs.map(x=>x.id===eid?d:x);else S.dogs.push(d);
-  sv.d();renderDogs();renderDash();toast(eid?'Aggiornato!':'Cane aggiunto! 🎉');go(eid?'detail':'dogs',eid||null);
+  const okD=await sv.d(d);
+  if(okD){renderDogs();renderDash();toast(eid?'Aggiornato!':'Cane aggiunto! 🎉');go(eid?'detail':'dogs',eid||null);}
 }
 
 // RECORD FORM (smart)
@@ -717,8 +851,11 @@ function onDateChg(val,cat){
   if(cat==='sverminazione')days=180;
   if(days&&val)due.value=addD(val,days);
 }
-function saveRec(dogId,existId){
+async function saveRec(dogId,existId){
   const cat=S.newRecCat||'vaccino';
+  const rdate=document.getElementById('r-date')?.value;
+  const rdue=document.getElementById('r-due')?.value;
+  if(rdate&&rdue&&new Date(rdue)<new Date(rdate)){toast('La scadenza non puo precedere la somministrazione');return;}
   let name='',product='',customName='',rabbiaDays=null;
   if(cat==='vaccino'){product=document.getElementById('r-prod')?.value||'dhppi';const v=VACCINES.find(x=>x.id===product);if(product==='altro_vax'){customName=document.getElementById('r-name-custom')?.value.trim()||'';name=customName||'Vaccino';}else{name=v?.label||product;}if(product==='rabbia'){rabbiaDays=parseInt(document.getElementById('r-rabbia-dur')?.value||365);if(rabbiaDays===1095)name='Rabbia (3 anni)';}}
   else if(cat==='antiparassitario'){product=document.getElementById('r-prod')?.value||'advantix';const p=ANTIPAR.find(x=>x.id===product);if(product==='altro_anti'){customName=document.getElementById('r-name-custom')?.value.trim()||'';name=customName||'Antiparassitario';}else name=p?.label||product;}
@@ -726,11 +863,10 @@ function saveRec(dogId,existId){
   else{customName=document.getElementById('r-name-custom')?.value.trim()||'';name=customName;if(!name){toast('Inserisci una descrizione');return;}}
   const rec={id:existId||uid(),dogId,category:cat,name,product,customName,rabbiaDays,date:document.getElementById('r-date')?.value,dueDate:document.getElementById('r-due')?.value,vetName:document.getElementById('r-vet')?.value.trim()||'',cost:document.getElementById('r-cost')?.value||'',notes:document.getElementById('r-notes')?.value.trim()||''};
   if(existId)S.records=S.records.map(r=>r.id===existId?rec:r);else S.records.push(rec);
-  sv.r();renderDogs();renderDash();
-  if(rec.dueDate&&S.cfg.email)createCalEvent(rec.name,rec.dueDate,getDog(dogId)?.name||'il tuo cane');
-  toast(existId?'Aggiornato!':'Salvato! ✓');go('detail',dogId);
+  const okR=await sv.r(rec);
+  if(okR){renderDogs();renderDash();if(rec.dueDate)createCalEvent(rec.name,rec.dueDate,getDog(dogId)?.name||'il tuo cane');toast(existId?'Aggiornato!':'Salvato! ✓');go('detail',dogId);}
 }
-function delRec(rid,did){if(!confirm('Eliminare?'))return;S.records=S.records.filter(r=>r.id!==rid);sv.r();renderDogs();renderDash();go('detail',did);toast('Eliminato');}
+async function delRec(rid,did){if(!confirm('Eliminare?'))return;S.records=S.records.filter(r=>r.id!==rid);await del.r(rid);renderDogs();renderDash();go('detail',did);toast('Eliminato');}
 
 // SHOW FORM
 function renderShowForm(){
@@ -758,12 +894,13 @@ function renderShowForm(){
   ${show?`<button class="btn bD full" onclick="delShow('${show.id}','${dogId}')">Elimina</button>`:''}`;
 }
 function togCert(c){const idx=S.selCerts.indexOf(c);if(idx>=0)S.selCerts.splice(idx,1);else S.selCerts.push(c);document.querySelectorAll('.cert-btn').forEach(b=>b.classList.toggle('on',S.selCerts.includes(b.textContent.trim())));}
-function saveShow(dogId,eid){
+async function saveShow(dogId,eid){
   const s={id:eid||uid(),dogId,date:document.getElementById('s-date').value,type:document.getElementById('s-type').value,location:document.getElementById('s-loc').value.trim(),classe:document.getElementById('s-class').value,qual:document.getElementById('s-qual').value,placement:document.getElementById('s-place').value||null,judge:document.getElementById('s-judge').value.trim(),certs:[...S.selCerts],notes:document.getElementById('s-notes').value.trim()};
   if(eid)S.shows=S.shows.map(x=>x.id===eid?s:x);else S.shows.push(s);
-  sv.s();renderDogs();renderDash();toast(eid?'Aggiornato!':'Esposizione salvata! 🏅');go('detail',dogId);
+  const okS=await sv.s(s);
+  if(okS){renderDogs();renderDash();toast(eid?'Aggiornato!':'Esposizione salvata! 🏅');go('detail',dogId);}
 }
-function delShow(sid,did){if(!confirm('Eliminare?'))return;S.shows=S.shows.filter(s=>s.id!==sid);sv.s();renderDogs();go('detail',did);toast('Eliminato');}
+async function delShow(sid,did){if(!confirm('Eliminare?'))return;S.shows=S.shows.filter(s=>s.id!==sid);await del.s(sid);renderDogs();go('detail',did);toast('Eliminato');}
 
 // TRIAL FORM
 function renderTrialForm(){
@@ -789,12 +926,13 @@ function renderTrialForm(){
   <button class="btn bA full" style="margin-bottom:8px" onclick="saveTrial('${dogId}','${trial?.id||''}')">${trial?'Salva modifiche':'Salva prova'}</button>
   ${trial?`<button class="btn bD full" onclick="delTrial('${trial.id}','${dogId}')">Elimina</button>`:''}`;
 }
-function saveTrial(dogId,eid){
+async function saveTrial(dogId,eid){
   const t={id:eid||uid(),dogId,date:document.getElementById('t-date').value,type:document.getElementById('t-type').value,qual:document.getElementById('t-qual').value,location:document.getElementById('t-loc').value.trim(),certs:[...S.selCerts],speciale:document.getElementById('t-sp').checked,abbattuto:document.getElementById('t-ab').checked,autunnale:document.getElementById('t-au').checked,judge:document.getElementById('t-judge').value.trim(),notes:document.getElementById('t-notes').value.trim()};
   if(eid)S.trials=S.trials.map(x=>x.id===eid?t:x);else S.trials.push(t);
-  sv.t();renderDogs();renderDash();toast(eid?'Aggiornato!':'Prova salvata! 🐕');go('detail',dogId);
+  const okT=await sv.t(t);
+  if(okT){renderDogs();renderDash();toast(eid?'Aggiornato!':'Prova salvata! 🐕');go('detail',dogId);}
 }
-function delTrial(tid,did){if(!confirm('Eliminare?'))return;S.trials=S.trials.filter(t=>t.id!==tid);sv.t();renderDogs();go('detail',did);toast('Eliminato');}
+async function delTrial(tid,did){if(!confirm('Eliminare?'))return;S.trials=S.trials.filter(t=>t.id!==tid);await del.t(tid);renderDogs();go('detail',did);toast('Eliminato');}
 
 // CHAMPIONSHIP TRACKER
 function renderChamp(){
@@ -857,7 +995,7 @@ function renderChamp(){
   }
   document.getElementById('champ-c').innerHTML=h;
 }
-function setManual(dogId,key,val){const dog=getDog(dogId);if(!dog)return;if(!dog.champManual)dog.champManual={};dog.champManual[key]=val;sv.d();renderChamp();}
+async function setManual(dogId,key,val){const dog=getDog(dogId);if(!dog)return;if(!dog.champManual)dog.champManual={};dog.champManual[key]=val;await sv.d(dog);renderChamp();}
 
 // BREEDING
 function renderBreed(){
@@ -913,16 +1051,18 @@ function renderHeatForm(){
   ${heat?`<button class="btn bD full" onclick="delHeat('${heat.id}')">Elimina calore</button>`:''}`;
 }
 function calcHD(){const s=document.getElementById('hs')?.value,e=document.getElementById('he')?.value,el=document.getElementById('hdur');if(!el)return;if(s&&e){const d=Math.ceil((new Date(e)-new Date(s))/864e5);el.innerHTML=d>0?`Durata: <strong>${d} giorni</strong>`:'';} else el.innerHTML='';}
-function saveHeat(eid){
+async function saveHeat(eid){
   const did=document.getElementById('hd').value;if(!did){toast('Seleziona la cagnina');return;}
   const start=document.getElementById('hs').value;if(!start){toast('Data inizio obbligatoria');return;}
   const end=document.getElementById('he').value;
+  if(end&&new Date(end)<new Date(start)){toast('La data di fine non puo precedere quella di inizio');return;}
   const dur=start&&end?Math.ceil((new Date(end)-new Date(start))/864e5):null;
   const h={id:eid||uid(),dogId:did,startDate:start,endDate:end,duration:dur,mated:document.getElementById('hm').checked,matedWith:document.getElementById('hw').value.trim(),notes:document.getElementById('hn').value.trim()};
   if(eid)S.heats=S.heats.map(x=>x.id===eid?h:x);else S.heats.push(h);
-  sv.h();renderBreed();renderDogs();toast(eid?'Aggiornato!':'Calore salvato! 🌸');go('breeding');
+  const okH=await sv.h(h);
+  if(okH){renderBreed();renderDogs();toast(eid?'Aggiornato!':'Calore salvato! 🌸');go('breeding');}
 }
-function delHeat(id){if(!confirm('Eliminare?'))return;S.heats=S.heats.filter(h=>h.id!==id);sv.h();renderBreed();go('breeding');toast('Eliminato');}
+async function delHeat(id){if(!confirm('Eliminare?'))return;S.heats=S.heats.filter(h=>h.id!==id);await del.h(id);renderBreed();go('breeding');toast('Eliminato');}
 
 // LITTER FORM
 function renderLitterForm(){
@@ -938,14 +1078,17 @@ function renderLitterForm(){
   ${l?`<button class="btn bD full" onclick="delLitter('${l.id}')">Elimina cucciolata</button>`:''}`;
 }
 function calcParto(){const v=document.getElementById('lma')?.value,el=document.getElementById('parto-prev');if(!el)return;if(v)el.innerHTML=`Parto previsto (+63 giorni): <strong>${fd(addD(v,63))}</strong>`;else el.innerHTML='';}
-function saveLitter(eid){
+async function saveLitter(eid){
   const mid=document.getElementById('lm').value;if(!mid){toast('Seleziona la madre');return;}
   const bd=document.getElementById('lb').value;if(!bd){toast('Data parto obbligatoria');return;}
+  const matingd=document.getElementById('lma').value;
+  if(matingd&&new Date(bd)<new Date(matingd)){toast('La data di parto non puo precedere quella di accoppiamento');return;}
   const l={id:eid||uid(),motherId:mid,fatherName:document.getElementById('lf').value.trim(),matingDate:document.getElementById('lma').value,birthDate:bd,notes:document.getElementById('ln').value.trim()};
   if(eid)S.litters=S.litters.map(x=>x.id===eid?l:x);else S.litters.push(l);
-  sv.l();renderBreed();renderDogs();renderDash();toast(eid?'Aggiornata!':'Cucciolata creata! 🐣');go('litter-detail',l.id);
+  const okL=await sv.l(l);
+  if(okL){renderBreed();renderDogs();renderDash();toast(eid?'Aggiornata!':'Cucciolata creata! 🐣');go('litter-detail',l.id);}
 }
-function delLitter(id){if(!confirm('Eliminare cucciolata e tutti i cuccioli?'))return;S.litters=S.litters.filter(l=>l.id!==id);S.puppies=S.puppies.filter(p=>p.litterId!==id);sv.l();sv.p();renderAll();go('breeding');toast('Eliminata');}
+async function delLitter(id){if(!confirm('Eliminare cucciolata e tutti i cuccioli?'))return;for(const p of S.puppies.filter(p=>p.litterId===id)) await del.p(p.id);await del.l(id);S.litters=S.litters.filter(l=>l.id!==id);S.puppies=S.puppies.filter(p=>p.litterId!==id);renderAll();go('breeding');toast('Eliminata');}
 
 // LITTER DETAIL
 function renderLitterDetail(){
@@ -1020,7 +1163,7 @@ function renderPuppyForm(){
   <button class="btn bA full" style="margin-bottom:8px" onclick="savePuppy('${litId}','${pup?.id||''}')">${pup?'Salva modifiche':'Aggiungi cucciolo'}</button>
   ${pup?`<button class="btn bD full" onclick="delPuppy('${pup.id}','${litId}')">Elimina cucciolo</button>`:''}`;
 }
-function savePuppy(litId,eid){
+async function savePuppy(litId,eid){
   const pup=eid?S.puppies.find(p=>p.id===eid):null;
   const oldWts=pup?.weeklyWeights||[];
   const newWts=oldWts.map((_,i)=>{const v=document.getElementById('wt-'+i)?.value;return{label:oldWts[i].label,val:v?parseInt(v):oldWts[i].val};});
@@ -1029,9 +1172,10 @@ function savePuppy(litId,eid){
   if(newLabel&&newVal)newWts.push({label:newLabel,val:parseInt(newVal)});
   const p={id:eid||uid(),litterId:litId,num:parseInt(document.getElementById('pn').value)||1,name:document.getElementById('pna').value.trim(),birthDate:document.getElementById('pd').value,birthTime:document.getElementById('pt').value,birthDuration:document.getElementById('pdr').value.trim(),sex:document.getElementById('ps').value,color:document.getElementById('pc').value.trim(),birthWeight:document.getElementById('pbw').value,notes:document.getElementById('pno').value.trim(),weeklyWeights:newWts};
   if(eid)S.puppies=S.puppies.map(x=>x.id===eid?p:x);else{p.weeklyWeights=[];if(newLabel&&newVal)p.weeklyWeights.push({label:newLabel,val:parseInt(newVal)});S.puppies.push(p);}
-  sv.p();renderBreed();renderDash();toast(eid?'Aggiornato!':'Cucciolo aggiunto! 🐶');go('litter-detail',litId);
+  const okP=await sv.p(p);
+  if(okP){renderBreed();renderDash();toast(eid?'Aggiornato!':'Cucciolo aggiunto! 🐶');go('litter-detail',litId);}
 }
-function delPuppy(pid,litId){if(!confirm('Eliminare?'))return;S.puppies=S.puppies.filter(p=>p.id!==pid);sv.p();go('litter-detail',litId);toast('Eliminato');}
+async function delPuppy(pid,litId){if(!confirm('Eliminare?'))return;S.puppies=S.puppies.filter(p=>p.id!==pid);await del.p(pid);go('litter-detail',litId);toast('Eliminato');}
 
 // SETTINGS
 function renderSettings(){
@@ -1046,6 +1190,10 @@ function renderSettings(){
     </div>
   </div>
   <button class="btn bP full" style="margin-bottom:16px" onclick="saveCfgForm()">Salva impostazioni</button>
+  <div class="stt">Sicurezza Firestore</div>
+  <div class="card" style="background:var(--acl);border-color:var(--ac);margin-bottom:12px">
+    <div style="font-size:12px;color:var(--t2)">Architettura v2: ogni documento salvato separatamente. Nessun limite di 1MB. Salvataggi confermati da Firebase prima del toast.</div>
+  </div>
   <div class="stt">Account</div>
   <div class="card">
     <div id="account-info" style="font-size:13px;color:var(--t2);margin-bottom:12px">Caricamento...</div>
@@ -1062,13 +1210,15 @@ function updateAccountInfo(){
     if(el&&currentUser)el.innerHTML=`<strong>${currentUser.displayName||'Utente'}</strong><br><span style="font-size:11px">${currentUser.email}</span><br><span style="font-size:10px;color:var(--t3)">Accesso sicuro con Google</span>`;
   },100);
 }
-function saveCfgForm(){S.cfg.email=document.getElementById('se').value.trim();S.cfg.daysAhead=parseInt(document.getElementById('sd').value)||60;S.cfg.vetName=document.getElementById('svet').value.trim();sv.c();renderDash();renderSettings();toast('Impostazioni salvate ✓');}
+async function saveCfgForm(){S.cfg.email=document.getElementById('se').value.trim();S.cfg.daysAhead=parseInt(document.getElementById('sd').value)||60;S.cfg.vetName=document.getElementById('svet').value.trim();const okC=await sv.c(S.cfg);if(okC){renderDash();renderSettings();toast('Impostazioni salvate ✓');}}
 
 // PDF EXPORT
 function exportPDF(dogId){
   const dog=getDog(dogId);if(!dog)return;
   const recs=dogRecs(dogId),shows=dogShows(dogId),trials=dogTrials(dogId);
-  const wnd=window.open('','_blank');
+  let iframe=document.getElementById('_pdf_iframe');
+  if(!iframe){iframe=document.createElement('iframe');iframe.id='_pdf_iframe';iframe.style.cssText='position:fixed;width:0;height:0;border:none;left:-9999px;top:-9999px;';document.body.appendChild(iframe);}
+  const wnd=iframe.contentWindow;wnd.document.open();
   let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Scheda ${esc(dog.name)}</title><style>
     body{font-family:Arial,sans-serif;max-width:800px;margin:20px auto;font-size:13px;color:#222}
     h1{font-size:22px;color:#7B4F2A;border-bottom:2px solid #7B4F2A;padding-bottom:8px}
@@ -1094,8 +1244,9 @@ function exportPDF(dogId){
   if(trials.length){html+=`<h2>Prove di Lavoro</h2><table><tr><th>Data</th><th>Luogo</th><th>Tipo prova</th><th>Qualifica</th><th>Certificati</th></tr>`;
     trials.forEach(t=>{const tt=TRIAL_TYPES.find(x=>x.id===t.type);html+=`<tr><td>${fd(t.date)}</td><td>${esc(t.location)||'—'}</td><td>${tt?.label||t.type}</td><td>${t.qual||'—'}</td><td>${t.certs?.join(', ')||'—'}${t.speciale?' (Prova Speciale)':''}</td></tr>`;});html+=`</table>`;}
   html+=`<p style="margin-top:20px;font-size:10px;color:#999">Generato da VetTrack Pro il ${fd(tod())}</p>
-  <script>window.onload=()=>window.print();<\/script></body></html>`;
+  </body></html>`;
   wnd.document.write(html);wnd.document.close();
+  setTimeout(()=>{try{wnd.print();}catch(e){toast('Apri il PDF dal menu di stampa');}},400);
 }
 
 // EMAIL & CALENDAR
@@ -1111,14 +1262,14 @@ async function sendEmail(){
   const subject='VetTrack Pro - Promemoria scadenze veterinarie';
   const body='Ciao Alessio,'+NL+NL+'Scadenze nei prossimi '+S.cfg.daysAhead+' giorni:'+NL+NL+lista+NL+NL+'Cani:'+NL+cani+NL+NL+'VetTrack Pro - Di Casa Parodi';
   const ok=await sendEmailViaEmailJS(S.cfg.email,subject,body);
-  if(ok){await fbSet('lastEmail',tod());toast('Email inviata!');}
+  if(ok){await fbSetLastEmail();toast('Email inviata!');}
   else{toast('Errore invio email');}
   btn.innerHTML='Invia promemoria email';
   btn.disabled=false;
 }
 async function autoCheck(){
   if(!S.cfg.email)return;
-  try{const lastDate=await fbGet('lastEmail')||'';if(lastDate===tod())return;}catch{}
+  try{const lastDate=await fbGetLastEmail();if(lastDate===tod())return;}catch{}
   const up=upcoming(S.cfg.daysAhead);if(!up.length)return;
   const urgent=up.filter(r=>r._d<=7);if(!urgent.length)return;
   setTimeout(()=>sendEmail(),3000);
