@@ -451,6 +451,9 @@ function champComp(dogId){
   const tECCq=tr.filter(t=>t.qual&&t.qual.startsWith('ECC')&&(t.type==='quaglie_class'||t.type==='quaglie_att')).length;
   const tECCbm=tr.filter(t=>t.qual&&t.qual.startsWith('ECC')&&(t.type==='beccacce'||t.type==='montagna')).length;
   const tECCst=tr.filter(t=>t.qual&&t.qual.startsWith('ECC')&&(t.type==='starne'||t.type==='selvaggina')).length;
+  const tCACstarne=tr.filter(t=>hasCert(t.certs,'CAC')&&t.type==='starne').length;
+  const tECCstarne=tr.filter(t=>t.qual&&t.qual.startsWith('ECC')&&t.type==='starne').length;
+  const tECCstarneIt=tr.some(t=>t.qual&&t.qual.startsWith('ECC')&&t.type==='starne'&&(!t.nation||t.nation.toLowerCase().includes('ital')))||m.eccItalia||false;
   const tRiporto=m.riporto||tr.some(t=>hasCert(t.certs,'Idoneità al Riporto')||hasCert(t.certs,'Brevetto di Riporto'));
 
   const tECCitalia=tr.some(t=>t.qual&&t.qual.startsWith('ECC')&&(!t.nation||t.nation.toLowerCase().includes('ital')))||m.eccItalia||false;
@@ -496,12 +499,13 @@ function champComp(dogId){
   const cibAuto=(sCAC>=6||(sCAClavoro>=5))&&sCACintl>=2&&sCACnaz>=1&&
     ((sCAC>=6&&sCACraduno>=2)||(sCAClavoro>=5&&sCACraduno>=1))&&
     sGiudici>=5&&tProvaLavCIB&&sMB;
+  const tCoppia=!!m.coppia;
   const tHasCIB=m.hasCIB||cibAuto;
   const cilAuto_F=tCACeff_cil>=1&&tECC_cil>=2&&(tCACspTot>=1||tECCsp>=2)&&tRiporto&&(m.coppia||false)&&sMB;
   const cilAuto_M=tCACeff_cil>=3&&tCACspTot>=1&&tRiporto&&(m.coppia||false)&&sMB;
   const tHasCIL=m.hasCIL||(isFemmina?cilAuto_F:cilAuto_M);
   // Campione Assoluto: calcolato qui dove tutte le variabili sono disponibili
-  return{tCAC,tCACeff,tCACeff_cil,tCACsp,tRCACsp,tCACspTot,tCACabb,tCACq,tCACst,tCACstq,tCACbm,tCACaut,tECC,tECC_cil,tECCsp,tECCq,tECCbm,tECCst,tRiporto,tECCitalia,tHasCIB,tHasCIL,tProvaLavIntl,tDiverseSocNaz,tGiudiciDiversiChit,tProvaLavCIB,sCAC,sCACintl,sCACnaz,sCACraduno,sCAClavoro,sGiudici,sMB,sCACIB,sCACIBgiudici,sCACIBpaesi,cacibDateOk,tCACIT,tRCACIT,tMBintl,sVCAC,sVCACnaz,sVCACgiudici,sJCACintl,sJCACnaz,sJCACraduno,gpPoints};
+  return{tECCstarneIt,tCACstarne,tECCstarne,tCoppia,tCAC,tCACeff,tCACeff_cil,tCACsp,tRCACsp,tCACspTot,tCACabb,tCACq,tCACst,tCACstq,tCACbm,tCACaut,tECC,tECC_cil,tECCsp,tECCq,tECCbm,tECCst,tRiporto,tECCitalia,tHasCIB,tHasCIL,tProvaLavIntl,tDiverseSocNaz,tGiudiciDiversiChit,tProvaLavCIB,sCAC,sCACintl,sCACnaz,sCACraduno,sCAClavoro,sGiudici,sMB,sCACIB,sCACIBgiudici,sCACIBpaesi,cacibDateOk,tCACIT,tRCACIT,tMBintl,sVCAC,sVCACnaz,sVCACgiudici,sJCACintl,sJCACnaz,sJCACraduno,gpPoints};
   }catch(e){console.error('champComp error:',e);return{};}
 }
 function getChampReqs(id,dogId){
@@ -522,10 +526,10 @@ function getChampReqs(id,dogId){
       {ok:c.sMB,text:'MB in raduno di razza o mostra speciale con CAC',manual:true,mkey:'mbEspo'}
     ],
     'CCS':[
-      {ok:c.tCAC>=2,text:'2 CAC in prove (hai: '+c.tCAC+'/2) — nota: max 1 CAC da pernici rosse/sarde è valido'},
-      {ok:c.tECC>=1,text:'1 ECC in prove (hai: '+c.tECC+'/1)'},
+      {ok:c.tCACstarne>=2,text:'2 CAC in prove di caccia su starne (hai: '+c.tCACstarne+'/2) — nota: max 1 CAC da pernici rosse/sarde è valido'},
+      {ok:c.tECCstarne>=1,text:'1 ECC in prove di caccia su starne (hai: '+c.tECCstarne+'/1)'},
       {ok:c.tRiporto,text:'Idoneità al Riporto',manual:true,mkey:'riporto'},
-      {ok:c.tECCitalia,text:'>=1 ECC in prova organizzata in Italia',manual:true,mkey:'eccItalia'},
+      {ok:c.tECCstarneIt,text:'>=1 ECC in prova su starne organizzata in Italia',manual:true,mkey:'eccItalia'},
       {ok:c.sMB,text:'MB in raduno di razza o mostra speciale con CAC',manual:true,mkey:'mbEspo'}
     ],
     'CSP':[
@@ -832,7 +836,7 @@ function renderSaluteTab(dog){
               active.map(r=>`<div style="margin-bottom:4px;cursor:pointer;padding:4px 6px;border-radius:6px;background:var(--s2)" onclick="event.stopPropagation();go('record-form',{dogId:'${dog.id}',recId:'${r.id}'})">
                 <div style="font-weight:600;font-size:12px">${esc(r.name)}</div>
                 <div style="font-size:10px;color:var(--t2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">
-                  ${r.date?`<span>${fd(r.date)}</span>`:''}
+                  ${r.date?`<span>${fd(r.date)}</span>`:''} ${r.duration?`<span style='color:var(--ac);font-weight:700'>${r.duration}gg</span>`:''}
                   ${r.dueDate?`<span>→ <strong>${fd(r.dueDate)}</strong> ${ubadge(dTo(r.dueDate))}</span>`:''}
                   ${r.dueDate?`<button class="btn bS sm" style="padding:2px 7px;font-size:10px;min-height:22px" onclick="event.stopPropagation();downloadVaccineCalendar('${esc(r.name)}','${r.dueDate}','${esc(dog.name)}')">📅</button>`:''}
                   <span style="font-size:9px;color:var(--t3)">✏️ tocca per modificare</span>
@@ -853,7 +857,7 @@ function renderSaluteTab(dog){
           ${cat!=='vaccino'?active.slice(1).map(r=>{const d2=dTo(r.dueDate);return`<div class="rl ${catInfo.cls}" onclick="go('record-form',{dogId:'${dog.id}',recId:'${r.id}'})">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
               <div><div style="font-weight:600;font-size:13px">${esc(r.name)}</div>
-                <div style="font-size:10px;color:var(--t2);margin-top:2px">${fd(r.date)}${r.dueDate?' → '+fd(r.dueDate):''}</div>
+                <div style="font-size:10px;color:var(--t2);margin-top:2px">${fd(r.date)}${r.duration?` · <strong>${r.duration} giorni</strong>`:''}${r.dueDate?' → '+fd(r.dueDate):''}</div>
               </div>${d2!==null?`<div>${ubadge(d2)}</div>`:''}
             </div>
           </div>`;}).join(''):''}
@@ -1213,8 +1217,9 @@ function renderRecForm(){
   ${prodHtml}
   <div class="r2">
     <div class="fg"><label class="fl">Data somministrazione</label><input class="fi" id="r-date" type="date" value="${dateVal}" onchange="onDateChg(this.value,'${cat}')"></div>
-    <div class="fg"><label class="fl">Prossima scadenza</label><input class="fi" id="r-due" type="date" value="${dueVal}"></div>
+    <div class="fg"><label class="fl">Prossima scadenza <span style="font-weight:400;color:var(--t3);font-size:11px">(opzionale — lascia vuoto se non c'è una scadenza)</span></label><div style="display:flex;gap:8px;align-items:center"><input class="fi" id="r-due" type="date" value="${dueVal}" style="flex:1"><button type="button" class="btn bS sm" style="white-space:nowrap" onclick="document.getElementById('r-due').value=''">✕ Nessuna</button></div></div>
   </div>
+  <div class="fg" style="margin-bottom:12px"><label class="fl">Durata trattamento <span style="font-weight:400;color:var(--t3);font-size:11px">(opzionale — es. 5 per un farmaco da dare 5 giorni di fila)</span></label><div style="display:flex;align-items:center;gap:8px"><input class="fi" id="r-duration" type="number" min="1" max="365" placeholder="Es. 5" style="max-width:100px" value="${rec?.duration||''}"><span style="font-size:13px;color:var(--t2)">giorni</span></div></div>
   <details style="margin-bottom:12px"><summary>Dati aggiuntivi</summary><div style="margin-top:8px">
     <div class="r2"><div class="fg"><label class="fl">Veterinario</label><input class="fi" id="r-vet" type="text" value="${rec?.vetName||S.cfg.vetName||''}"></div><div class="fg"><label class="fl">Costo €</label><input class="fi" id="r-cost" type="number" step="0.01" min="0" value="${rec?.cost||''}"></div></div>
     <div class="fg"><label class="fl">Note</label><textarea class="fi" id="r-notes">${rec?.notes||''}</textarea></div>
@@ -1253,7 +1258,7 @@ async function saveRec(dogId,existId){
   else if(cat==='antiparassitario'){product=document.getElementById('r-prod')?.value||'advantix';const p=ANTIPAR.find(x=>x.id===product);if(product==='altro_anti'){customName=document.getElementById('r-name-custom')?.value.trim()||'';name=customName||'Antiparassitario';}else name=p?.label||product;}
   else if(cat==='sverminazione'){product=document.getElementById('r-prod')?.value||'milbemax';const p=DEWORM.find(x=>x.id===product);name=p?.label||product;}
   else{customName=document.getElementById('r-name-custom')?.value.trim()||'';name=customName;if(!name){toast('Inserisci una descrizione');return;}}
-  const rec={id:existId||uid(),dogId,category:cat,name,product,customName,rabbiaDays,date:document.getElementById('r-date')?.value,dueDate:document.getElementById('r-due')?.value,vetName:document.getElementById('r-vet')?.value.trim()||'',cost:document.getElementById('r-cost')?.value||'',notes:document.getElementById('r-notes')?.value.trim()||''};
+  const rec={id:existId||uid(),dogId,category:cat,name,product,customName,rabbiaDays,date:document.getElementById('r-date')?.value,dueDate:document.getElementById('r-due')?.value,vetName:document.getElementById('r-vet')?.value.trim()||'',cost:document.getElementById('r-cost')?.value||'',notes:document.getElementById('r-notes')?.value.trim()||'',duration:parseInt(document.getElementById('r-duration')?.value)||null};
   if(existId)S.records=S.records.map(r=>r.id===existId?rec:r);else S.records.push(rec);
   const okR=await sv.r(rec);
   if(okR){renderDogs();renderDash();if(rec.dueDate)createCalEvent(rec.name,rec.dueDate,getDog(dogId)?.name||'il tuo cane');toast(existId?'Aggiornato!':'Salvato! ✓');go('detail',dogId);}
